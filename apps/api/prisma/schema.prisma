@@ -1,0 +1,337 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// --- ENUMS ---
+enum Role {
+  ADMIN
+  MANAGER
+  SALESPERSON
+}
+
+enum ProductType {
+  SERIALIZED
+  BATCH
+}
+
+enum ItemStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  DEFECTIVE
+  LOST
+}
+
+enum MovementType {
+  INBOUND_PURCHASE
+  OUTBOUND_SALE
+  TRANSFER
+  ADJUSTMENT
+  RETURN_RESTOCK
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  CUSTOMER_CHANGE_MIND
+  WARRANTY_CLAIM
+  OTHER
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESTOCKED
+  DISPOSED
+}
+
+enum ExpenseCategory {
+  RENT
+  UTILITIES
+  SALARY
+  TRANSPORT
+  REPAIRS
+  MARKETING
+  SUPPLIES
+  OTHER
+}
+
+// --- USERS & AUTH ---
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(SALESPERSON)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sales            Sale[]
+  purchases        Purchase[]
+  movements        StockMovement[]
+  createdReturns   Return[]        @relation("CreatedReturns")
+  processedReturns Return[]        @relation("ProcessedReturns")
+  expenses         Expense[]
+
+  @@map("users")
+}
+
+// --- LOCATIONS ---
+model Warehouse {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  address   String?
+  isShop    Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventory InventoryItem[]
+  toMoves   StockMovement[] @relation("ToWarehouse")
+  fromMoves StockMovement[] @relation("FromWarehouse")
+
+  @@map("warehouses")
+}
+
+// --- CATALOG ---
+model Brand {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("brands")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  type        ProductType
+  minStock    Int         @default(5)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  brandId    Int
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  variants       ProductVariant[]
+  movements      StockMovement[]
+  inventoryItems InventoryItem[]
+  orderItems     OrderItem[]
+
+  @@index([brandId])
+  @@index([categoryId])
+  @@index([type])
+  @@map("products")
+}
+
+model ProductVariant {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku       String   @unique
+  name      String // e.g., "iPhone 15 Black 128GB"
+  specs     Json // {color: "Black", storage: "128GB", ram: "8GB"}
+  sellPrice Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventory  InventoryItem[]
+  orderItems OrderItem[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+// --- CORE INVENTORY ---
+model InventoryItem {
+  id           Int            @id @default(autoincrement())
+  variantId    Int
+  variant      ProductVariant @relation(fields: [variantId], references: [id])
+  warehouseId  Int
+  warehouse    Warehouse      @relation(fields: [warehouseId], references: [id])
+  serialNumber String?
+  quantity     Int            @default(1)
+  costPrice    Decimal        @db.Decimal(10, 2)
+  status       ItemStatus     @default(AVAILABLE)
+  purchaseId   Int?
+  purchase     Purchase?      @relation(fields: [purchaseId], references: [id])
+  soldAtItemId Int?           @unique
+  soldAtItem   OrderItem?     @relation(fields: [soldAtItemId], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  product      Product?       @relation(fields: [productId], references: [id])
+  productId    Int?
+
+  @@unique([serialNumber, variantId])
+  @@index([variantId])
+  @@index([warehouseId])
+  @@index([status])
+  @@index([purchaseId])
+  @@map("inventory_items")
+}
+
+// --- TRANSACTIONS: INBOUND ---
+model Provider {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  contact   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchases Purchase[]
+
+  @@map("providers")
+}
+
+model Purchase {
+  id          Int      @id @default(autoincrement())
+  providerId  Int
+  provider    Provider @relation(fields: [providerId], references: [id])
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  referenceNo String?
+  totalCost   Decimal  @db.Decimal(10, 2)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items InventoryItem[]
+
+  @@index([providerId])
+  @@index([userId])
+  @@map("purchases")
+}
+
+// --- TRANSACTIONS: OUTBOUND ---
+model Sale {
+  id           Int      @id @default(autoincrement())
+  invoiceNo    String   @unique
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  customerName String?
+  totalAmount  Decimal  @db.Decimal(10, 2)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items   OrderItem[]
+  returns Return[]
+
+  @@index([userId])
+  @@map("sales")
+}
+
+model OrderItem {
+  id          Int            @id @default(autoincrement())
+  saleId      Int
+  sale        Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  variantId   Int
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  quantity    Int
+  sellPrice   Decimal        @db.Decimal(10, 2)
+  warrantyEnd DateTime?
+
+  inventoryItem InventoryItem?
+  returns       Return[]
+  product       Product?       @relation(fields: [productId], references: [id])
+  productId     Int?
+
+  @@index([saleId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+// --- AUDIT TRAIL ---
+model StockMovement {
+  id              Int          @id @default(autoincrement())
+  type            MovementType
+  productId       Int
+  product         Product      @relation(fields: [productId], references: [id])
+  quantity        Int
+  fromWarehouseId Int?
+  fromWarehouse   Warehouse?   @relation("FromWarehouse", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   Int?
+  toWarehouse     Warehouse?   @relation("ToWarehouse", fields: [toWarehouseId], references: [id])
+  userId          Int
+  user            User         @relation(fields: [userId], references: [id])
+  notes           String?
+  createdAt       DateTime     @default(now())
+
+  @@index([productId])
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([userId])
+  @@index([type])
+  @@map("stock_movements")
+}
+
+// --- RETURNS ---
+model Return {
+  id            Int          @id @default(autoincrement())
+  saleId        Int
+  sale          Sale         @relation(fields: [saleId], references: [id])
+  orderItemId   Int
+  orderItem     OrderItem    @relation(fields: [orderItemId], references: [id])
+  reason        ReturnReason
+  status        ReturnStatus @default(PENDING)
+  notes         String?
+  refundAmount  Decimal      @db.Decimal(10, 2)
+  processedById Int?
+  processedBy   User?        @relation("ProcessedReturns", fields: [processedById], references: [id])
+  createdById   Int
+  createdBy     User         @relation("CreatedReturns", fields: [createdById], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([saleId])
+  @@index([status])
+  @@index([createdById])
+  @@map("returns")
+}
+
+// --- EXPENSES ---
+model Expense {
+  id          Int             @id @default(autoincrement())
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(10, 2)
+  description String
+  receiptNo   String?
+  expenseDate DateTime        @default(now())
+  createdById Int
+  createdBy   User            @relation(fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([category])
+  @@index([expenseDate])
+  @@index([createdById])
+  @@map("expenses")
+}
