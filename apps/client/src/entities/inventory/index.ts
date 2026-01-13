@@ -25,6 +25,7 @@ export type InventoryItem = {
 export type UpdateInventoryPayload = {
   status?: InventoryItem["status"];
   quantity?: number;
+  warehouseId?: number;
 };
 
 export type TransferInventoryPayload = {
@@ -43,6 +44,7 @@ export const inventoryApi = {
     status?: string;
   }) => api.get<InventoryItem[]>("/inventory", { params }),
   getOne: (id: number) => api.get<InventoryItem>(`/inventory/${id}`),
+  create: (data: any) => api.post<InventoryItem>("/inventory", data),
   update: (id: number, data: UpdateInventoryPayload) =>
     api.patch<InventoryItem>(`/inventory/${id}`, data),
   transfer: (data: TransferInventoryPayload) =>
@@ -66,6 +68,22 @@ export const inventoryQueries = {
       queryFn: () => inventoryApi.getOne(id).then((res) => res.data),
       enabled: !!id,
     }),
+
+  useCreate: () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+      mutationFn: (data: any) => inventoryApi.create(data),
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["inventory"] });
+        toast.success("Inventory item created successfully");
+      },
+      onError: (error: any) => {
+        toast.error(
+          error.response?.data?.message || "Failed to create inventory item"
+        );
+      },
+    });
+  },
 
   useUpdate: () => {
     const queryClient = useQueryClient();

@@ -4,11 +4,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateInventoryDto, TransferInventoryDto } from './dto/inventory.dto';
+import {
+  UpdateInventoryDto,
+  TransferInventoryDto,
+  CreateInventoryDto,
+} from './dto/inventory.dto';
 
 @Injectable()
 export class InventoryService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async create(dto: CreateInventoryDto) {
+    return this.prisma.inventoryItem.create({
+      data: dto,
+    });
+  }
 
   findAll(warehouseId?: number, status?: string, variantId?: number) {
     return this.prisma.inventoryItem.findMany({

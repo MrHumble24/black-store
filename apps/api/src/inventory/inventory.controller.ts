@@ -10,11 +10,20 @@ import {
   Request,
 } from '@nestjs/common';
 import { InventoryService } from './inventory.service';
-import { UpdateInventoryDto, TransferInventoryDto } from './dto/inventory.dto';
+import {
+  UpdateInventoryDto,
+  TransferInventoryDto,
+  CreateInventoryDto,
+} from './dto/inventory.dto';
 
 @Controller('inventory')
 export class InventoryController {
   constructor(private readonly service: InventoryService) {}
+
+  @Post()
+  create(@Body() dto: CreateInventoryDto) {
+    return this.service.create(dto);
+  }
 
   @Get()
   findAll(

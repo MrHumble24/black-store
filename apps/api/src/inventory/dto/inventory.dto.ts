@@ -23,6 +23,34 @@ export class UpdateInventoryDto {
   warehouseId?: number;
 }
 
+export class CreateInventoryDto {
+  @IsInt()
+  variantId: number;
+
+  @IsInt()
+  warehouseId: number;
+
+  @IsInt()
+  @Min(1)
+  quantity: number;
+
+  @IsInt()
+  @Min(0)
+  costPrice: number;
+
+  @IsOptional()
+  @IsString()
+  serialNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
+
+  @IsOptional()
+  @IsEnum(ItemStatus)
+  status?: ItemStatus;
+}
+
 export class TransferInventoryDto {
   @IsInt()
   fromWarehouseId: number;
