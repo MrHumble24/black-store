@@ -8,6 +8,8 @@ import CreateProductPage from "@/pages/products/ui/CreateProductPage";
 import EditProductPage from "@/pages/products/ui/EditProductPage";
 import BrandsPage from "@/pages/brands/ui/BrandsPage";
 import CategoriesPage from "@/pages/categories/ui/CategoriesPage";
+import WarehousesPage from "@/pages/warehouses/ui/WarehousesPage";
+import ProvidersPage from "@/pages/providers/ui/ProvidersPage";
 import NotFoundPage from "@/pages/not-found/ui/NotFoundPage";
 
 // Placeholder pages (to be implemented)
@@ -58,16 +60,10 @@ export default function AppRoutes() {
           path="/settings/users"
           element={<PlaceholderPage title="Users" />}
         />
-        <Route
-          path="/settings/warehouses"
-          element={<PlaceholderPage title="Warehouses" />}
-        />
+        <Route path="/settings/warehouses" element={<WarehousesPage />} />
         <Route path="/settings/brands" element={<BrandsPage />} />
         <Route path="/settings/categories" element={<CategoriesPage />} />
-        <Route
-          path="/settings/providers"
-          element={<PlaceholderPage title="Providers" />}
-        />
+        <Route path="/settings/providers" element={<ProvidersPage />} />
       </Route>
 
       {/* 404 */}
