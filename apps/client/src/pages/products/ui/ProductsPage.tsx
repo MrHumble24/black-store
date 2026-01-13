@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { brandQueries } from "@/entities/brand";
 import { categoryQueries } from "@/entities/category";
 import { productQueries } from "@/entities/product";
@@ -13,14 +14,6 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Plus, Search, Filter, Package, Layers, Tags } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/shared/ui/dialog";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -43,25 +36,12 @@ export default function ProductsPage() {
             <Filter className="h-4 w-4" />
             Filters
           </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
-                <DialogDescription>
-                  Create a new product with multiple variants.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-6 text-center text-muted-foreground">
-                Product creation form coming soon...
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button asChild className="gap-2">
+            <Link to="/products/create">
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Link>
+          </Button>
         </div>
       </div>
 

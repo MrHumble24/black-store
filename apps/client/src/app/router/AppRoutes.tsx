@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/widgets/layout/ui/DashboardLayout";
 import LoginPage from "@/pages/login/ui/LoginPage";
 import DashboardPage from "@/pages/dashboard/ui/DashboardPage";
 import ProductsPage from "@/pages/products/ui/ProductsPage";
+import CreateProductPage from "@/pages/products/ui/CreateProductPage";
 import NotFoundPage from "@/pages/not-found/ui/NotFoundPage";
 
 // Placeholder pages (to be implemented)
@@ -33,6 +34,7 @@ export default function AppRoutes() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/pos" element={<PlaceholderPage title="POS / Sell" />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/create" element={<CreateProductPage />} />
         <Route
           path="/inventory"
           element={<PlaceholderPage title="Inventory" />}
