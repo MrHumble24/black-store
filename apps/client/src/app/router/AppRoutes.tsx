@@ -5,6 +5,9 @@ import LoginPage from "@/pages/login/ui/LoginPage";
 import DashboardPage from "@/pages/dashboard/ui/DashboardPage";
 import ProductsPage from "@/pages/products/ui/ProductsPage";
 import CreateProductPage from "@/pages/products/ui/CreateProductPage";
+import EditProductPage from "@/pages/products/ui/EditProductPage";
+import BrandsPage from "@/pages/brands/ui/BrandsPage";
+import CategoriesPage from "@/pages/categories/ui/CategoriesPage";
 import NotFoundPage from "@/pages/not-found/ui/NotFoundPage";
 
 // Placeholder pages (to be implemented)
@@ -35,6 +38,7 @@ export default function AppRoutes() {
         <Route path="/pos" element={<PlaceholderPage title="POS / Sell" />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/create" element={<CreateProductPage />} />
+        <Route path="/products/:id/edit" element={<EditProductPage />} />
         <Route
           path="/inventory"
           element={<PlaceholderPage title="Inventory" />}
@@ -58,14 +62,8 @@ export default function AppRoutes() {
           path="/settings/warehouses"
           element={<PlaceholderPage title="Warehouses" />}
         />
-        <Route
-          path="/settings/brands"
-          element={<PlaceholderPage title="Brands" />}
-        />
-        <Route
-          path="/settings/categories"
-          element={<PlaceholderPage title="Categories" />}
-        />
+        <Route path="/settings/brands" element={<BrandsPage />} />
+        <Route path="/settings/categories" element={<CategoriesPage />} />
         <Route
           path="/settings/providers"
           element={<PlaceholderPage title="Providers" />}

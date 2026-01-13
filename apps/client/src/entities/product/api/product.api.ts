@@ -8,6 +8,14 @@ export type CreateVariantPayload = {
   sellPrice: number;
 };
 
+export type UpdateVariantPayload = {
+  sku?: string;
+  name?: string;
+  specs?: Record<string, string>;
+  sellPrice?: number;
+  isActive?: boolean;
+};
+
 export type CreateProductPayload = {
   name: string;
   description?: string;
@@ -31,6 +39,12 @@ export const productsApi = {
   delete: (id: number) => api.delete(`/products/${id}`),
   search: (q: string) => api.get<ProductVariant[]>(`/products/search?q=${q}`),
   getLowStock: () => api.get("/products/low-stock"),
+
+  // Variant operations
   addVariant: (productId: number, data: CreateVariantPayload) =>
     api.post<ProductVariant>(`/products/${productId}/variants`, data),
+  updateVariant: (variantId: number, data: UpdateVariantPayload) =>
+    api.patch<ProductVariant>(`/products/variants/${variantId}`, data),
+  deleteVariant: (variantId: number) =>
+    api.delete(`/products/variants/${variantId}`),
 };
