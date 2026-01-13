@@ -4,6 +4,11 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 dotenv.config();
 
+// Fix BigInt serialization for JSON.stringify (Prisma returns BigInt for aggregations)
+(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();

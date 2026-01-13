@@ -190,7 +190,7 @@ export default function InventoryItemDetailsPage() {
               <div className="space-y-2">
                 <Label>Cost Price</Label>
                 <p className="text-xl font-bold text-green-600">
-                  ${item.costPrice.toFixed(2)}
+                  ${Number(item.costPrice).toFixed(2)}
                 </p>
               </div>
             </div>
