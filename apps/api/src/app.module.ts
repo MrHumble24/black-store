@@ -22,6 +22,8 @@ import { ReportsModule } from './reports/reports.module';
 import { LookupModule } from './lookup/lookup.module';
 import { WarrantyModule } from './warranty/warranty.module';
 
+import { AiModule } from './ai/ai.module';
+
 @Module({
   controllers: [AppController],
   providers: [
@@ -47,6 +49,7 @@ import { WarrantyModule } from './warranty/warranty.module';
     ReportsModule,
     LookupModule,
     WarrantyModule,
+    AiModule,
   ],
 })
 export class AppModule {}

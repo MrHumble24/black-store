@@ -13,6 +13,17 @@ import ProvidersPage from "@/pages/providers/ui/ProvidersPage";
 import InventoryPage from "@/pages/inventory/ui/InventoryPage";
 import CreateInventoryPage from "@/pages/inventory/ui/CreateInventoryPage";
 import InventoryItemDetailsPage from "@/pages/inventory/ui/InventoryItemDetailsPage";
+import TransferInventoryPage from "@/pages/inventory/ui/TransferInventoryPage";
+import PosPage from "@/pages/pos/ui/PosPage";
+import SalesPage from "@/pages/sales/ui/SalesPage";
+import SaleDetailsPage from "@/pages/sales/ui/SaleDetailsPage";
+import PurchasesPage from "@/pages/purchases/ui/PurchasesPage";
+import CreatePurchasePage from "@/pages/purchases/ui/CreatePurchasePage";
+import PurchaseDetailsPage from "@/pages/purchases/ui/PurchaseDetailsPage";
+import ReturnsPage from "@/pages/returns/ui/ReturnsPage";
+import ReturnDetailsPage from "@/pages/returns/ui/ReturnDetailsPage";
+import ExpensesPage from "@/pages/expenses/ui/ExpensesPage";
+import ReportsPage from "@/pages/reports/ui/ReportsPage";
 import NotFoundPage from "@/pages/not-found/ui/NotFoundPage";
 
 // Placeholder pages (to be implemented)
@@ -40,24 +51,23 @@ export default function AppRoutes() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
-        <Route path="/pos" element={<PlaceholderPage title="POS / Sell" />} />
+        <Route path="/pos" element={<PosPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/create" element={<CreateProductPage />} />
         <Route path="/products/:id/edit" element={<EditProductPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="/inventory/create" element={<CreateInventoryPage />} />
+        <Route path="/inventory/transfer" element={<TransferInventoryPage />} />
         <Route path="/inventory/:id" element={<InventoryItemDetailsPage />} />
-        <Route path="/sales" element={<PlaceholderPage title="Sales" />} />
-        <Route
-          path="/purchases"
-          element={<PlaceholderPage title="Purchases" />}
-        />
-        <Route path="/returns" element={<PlaceholderPage title="Returns" />} />
-        <Route
-          path="/expenses"
-          element={<PlaceholderPage title="Expenses" />}
-        />
-        <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
+        <Route path="/sales" element={<SalesPage />} />
+        <Route path="/sales/:id" element={<SaleDetailsPage />} />
+        <Route path="/purchases" element={<PurchasesPage />} />
+        <Route path="/purchases/create" element={<CreatePurchasePage />} />
+        <Route path="/purchases/:id" element={<PurchaseDetailsPage />} />
+        <Route path="/returns" element={<ReturnsPage />} />
+        <Route path="/returns/:id" element={<ReturnDetailsPage />} />
+        <Route path="/expenses" element={<ExpensesPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route
           path="/settings/users"
           element={<PlaceholderPage title="Users" />}

@@ -20,7 +20,14 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import { ArrowLeft, Loader2, Check, ChevronsUpDown } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Check,
+  ChevronsUpDown,
+  ScanBarcode,
+  QrCode,
+} from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import {
   Command,
@@ -31,6 +38,8 @@ import {
   CommandList,
 } from "@/shared/ui/command";
 import { cn } from "@/shared/lib/utils";
+import { BarcodeScanner } from "@/shared/ui/barcode-scanner";
+import { toast } from "sonner";
 
 export default function CreateInventoryPage() {
   const navigate = useNavigate();
@@ -47,12 +56,15 @@ export default function CreateInventoryPage() {
   const [status, setStatus] = useState<string>("AVAILABLE");
   const [serialNumber, setSerialNumber] = useState("");
   const [batchNumber, setBatchNumber] = useState("");
+  const [isSkuScannerOpen, setIsSkuScannerOpen] = useState(false);
+  const [isSnScannerOpen, setIsSnScannerOpen] = useState(false);
 
   const allVariants =
-    products?.flatMap((p) =>
-      p.variants.map((v) => ({
+    products?.flatMap((p: any) =>
+      p.variants.map((v: any) => ({
         ...v,
         productName: p.name,
+        productType: p.type,
         label: `${p.name} - ${v.name} (${v.sku})`,
       }))
     ) || [];
@@ -76,8 +88,33 @@ export default function CreateInventoryPage() {
     );
   };
 
+  const handleSkuScan = (sku: string) => {
+    const variant = allVariants.find(
+      (v: any) => v.sku.toLowerCase() === sku.toLowerCase()
+    );
+    if (variant) {
+      setSelectedVariantId(String(variant.id));
+      toast.success(`Matched: ${variant.label}`, {
+        description: `SKU: ${variant.sku} identified.`,
+        duration: 3000,
+      });
+    } else {
+      toast.error("Product Not Found", {
+        description: `No product matches SKU: ${sku}`,
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleSnScan = (sn: string) => {
+    setSerialNumber(sn);
+    toast.info("Serial Number Captured", {
+      description: `S/N: ${sn}`,
+    });
+  };
+
   const selectedVariant = allVariants.find(
-    (v) => String(v.id) === selectedVariantId
+    (v: any) => String(v.id) === selectedVariantId
   );
 
   return (
@@ -99,7 +136,18 @@ export default function CreateInventoryPage() {
         <CardContent className="space-y-4">
           {/* Product Variant Selection */}
           <div className="space-y-2 flex flex-col">
-            <Label>Product Variant</Label>
+            <div className="flex justify-between items-center">
+              <Label>Product Variant</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                onClick={() => setIsSkuScannerOpen(true)}
+              >
+                <ScanBarcode className="w-4 h-4 mr-2" />
+                Scan SKU
+              </Button>
+            </div>
             <Popover open={open} onOpenChange={setOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -114,13 +162,13 @@ export default function CreateInventoryPage() {
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-full p-0 PopoverContent">
+              <PopoverContent className="w-[400px] p-0 PopoverContent">
                 <Command className="w-full">
                   <CommandInput placeholder="Search variants..." />
                   <CommandList>
                     <CommandEmpty>No variant found.</CommandEmpty>
                     <CommandGroup>
-                      {allVariants.map((variant) => (
+                      {allVariants.map((variant: any) => (
                         <CommandItem
                           key={variant.id}
                           value={variant.label}
@@ -145,6 +193,18 @@ export default function CreateInventoryPage() {
                 </Command>
               </PopoverContent>
             </Popover>
+            {selectedVariant && (
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1.5 py-0.5 bg-muted rounded">
+                  SKU: {selectedVariant.sku}
+                </span>
+                {selectedVariant.productType === "SERIALIZED" && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 px-1.5 py-0.5 bg-blue-50 rounded">
+                    Serialized
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -156,7 +216,7 @@ export default function CreateInventoryPage() {
                   <SelectValue placeholder="Select warehouse" />
                 </SelectTrigger>
                 <SelectContent>
-                  {warehouses?.map((w) => (
+                  {warehouses?.map((w: any) => (
                     <SelectItem key={w.id} value={String(w.id)}>
                       {w.name}
                     </SelectItem>
@@ -216,7 +276,18 @@ export default function CreateInventoryPage() {
           <div className="grid grid-cols-2 gap-4">
             {/* Serial Number */}
             <div className="space-y-2">
-              <Label htmlFor="serialNumber">Serial Number (Optional)</Label>
+              <div className="flex justify-between items-center">
+                <Label htmlFor="serialNumber">Serial Number</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                  onClick={() => setIsSnScannerOpen(true)}
+                >
+                  <QrCode className="w-4 h-4 mr-2" />
+                  Scan S/N
+                </Button>
+              </div>
               <Input
                 id="serialNumber"
                 placeholder="Unique key for SERIALIZED items"
@@ -263,6 +334,18 @@ export default function CreateInventoryPage() {
           </div>
         </CardContent>
       </Card>
+
+      <BarcodeScanner
+        isOpen={isSkuScannerOpen}
+        onClose={() => setIsSkuScannerOpen(false)}
+        onScan={handleSkuScan}
+      />
+
+      <BarcodeScanner
+        isOpen={isSnScannerOpen}
+        onClose={() => setIsSnScannerOpen(false)}
+        onScan={handleSnScan}
+      />
     </div>
   );
 }

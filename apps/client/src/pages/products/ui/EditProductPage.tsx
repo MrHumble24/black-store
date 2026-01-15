@@ -35,7 +35,6 @@ import {
   Trash2,
   Boxes,
   Barcode,
-  DollarSign,
   Palette,
   Save,
   X,
@@ -59,7 +58,6 @@ type VariantFormData = {
   id?: number; // undefined for new variants
   sku: string;
   name: string;
-  sellPrice: string;
   specs: { key: string; value: string }[];
   isNew?: boolean;
   isDeleted?: boolean;
@@ -73,6 +71,7 @@ export default function EditProductPage() {
 
   // Form state
   const [name, setName] = useState("");
+  const [modelCode, setModelCode] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"SERIALIZED" | "BATCH">("SERIALIZED");
   const [minStock, setMinStock] = useState("5");
@@ -92,6 +91,7 @@ export default function EditProductPage() {
   useEffect(() => {
     if (product) {
       setName(product.name);
+      setModelCode(product.modelCode || "");
       setDescription(product.description || "");
       setType(product.type);
       setMinStock(String(product.minStock));
@@ -103,7 +103,6 @@ export default function EditProductPage() {
         id: v.id,
         sku: v.sku,
         name: v.name,
-        sellPrice: String(v.sellPrice),
         specs: Object.entries(v.specs || {}).map(([key, value]) => ({
           key,
           value: String(value),
@@ -163,7 +162,6 @@ export default function EditProductPage() {
     const newVariant: VariantFormData = {
       sku: "",
       name: "",
-      sellPrice: "",
       specs: MOBILE_SPEC_PRESETS.slice(0, 4).map((preset) => ({
         key: preset.key,
         value: "",
@@ -289,6 +287,7 @@ export default function EditProductPage() {
         id: productId,
         data: {
           name,
+          modelCode: modelCode || undefined,
           description: description || undefined,
           minStock: parseInt(minStock) || 5,
           brandId: parseInt(brandId),
@@ -305,11 +304,10 @@ export default function EditProductPage() {
           promises.push(productsApi.deleteVariant(variant.id));
         } else if (variant.isNew && !variant.isDeleted) {
           // Add new variant
-          if (variant.name && variant.sellPrice) {
+          if (variant.name) {
             const newVariantData: CreateVariantPayload = {
               sku: generateSKU(variant.name, variant.specs),
               name: variant.name,
-              sellPrice: parseFloat(variant.sellPrice),
               specs: variant.specs
                 .filter((s) => s.key && s.value)
                 .reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {}),
@@ -320,7 +318,6 @@ export default function EditProductPage() {
           // Update existing variant
           const updateData: UpdateVariantPayload = {
             name: variant.name,
-            sellPrice: parseFloat(variant.sellPrice),
             specs: variant.specs
               .filter((s) => s.key && s.value)
               .reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {}),
@@ -346,10 +343,7 @@ export default function EditProductPage() {
 
   const activeVariants = variants.filter((v) => !v.isDeleted);
   const isFormValid =
-    name &&
-    brandId &&
-    categoryId &&
-    activeVariants.some((v) => v.name && v.sellPrice);
+    name && brandId && categoryId && activeVariants.some((v) => v.name);
 
   const getSpecPlaceholder = (key: string) => {
     const preset = MOBILE_SPEC_PRESETS.find((p) => p.key === key);
@@ -425,19 +419,31 @@ export default function EditProductPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., iPhone 15 Pro"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-muted/50"
-                  required
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Product Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g., iPhone 15 Pro"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-muted/50"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="modelCode">Model Code</Label>
+                  <Input
+                    id="modelCode"
+                    placeholder="e.g., A3090, SM-S921B"
+                    value={modelCode}
+                    onChange={(e) => setModelCode(e.target.value)}
+                    className="bg-muted/50"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
@@ -446,7 +452,7 @@ export default function EditProductPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-muted/50 min-h-24"
                 />
-              </div>
+              </div> */}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -631,7 +637,7 @@ export default function EditProductPage() {
                   </Badge>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3 mb-4">
+                <div className="grid gap-4 sm:grid-cols-2 mb-4">
                   <div className="space-y-2">
                     <Label className="text-sm">
                       <Barcode className="inline h-3.5 w-3.5 mr-1.5" />
@@ -656,24 +662,6 @@ export default function EditProductPage() {
                       value={variant.name}
                       onChange={(e) =>
                         updateVariant(vIndex, "name", e.target.value)
-                      }
-                      className="bg-background"
-                      disabled={variant.isDeleted}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">
-                      <DollarSign className="inline h-3.5 w-3.5 mr-1.5" />
-                      Sell Price *
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      value={variant.sellPrice}
-                      onChange={(e) =>
-                        updateVariant(vIndex, "sellPrice", e.target.value)
                       }
                       className="bg-background"
                       disabled={variant.isDeleted}

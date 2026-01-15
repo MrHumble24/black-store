@@ -5,19 +5,18 @@ export type CreateVariantPayload = {
   sku: string;
   name: string;
   specs: Record<string, string>;
-  sellPrice: number;
 };
 
 export type UpdateVariantPayload = {
   sku?: string;
   name?: string;
   specs?: Record<string, string>;
-  sellPrice?: number;
   isActive?: boolean;
 };
 
 export type CreateProductPayload = {
   name: string;
+  modelCode?: string;
   description?: string;
   type: "SERIALIZED" | "BATCH";
   minStock?: number;

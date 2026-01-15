@@ -1,6 +1,15 @@
+import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { reportQueries } from "@/entities/report";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
+import { aiApi } from "@/shared/api/ai.api";
 import {
   Table,
   TableBody,
@@ -15,7 +24,83 @@ import {
   AlertTriangle,
   RotateCcw,
   TrendingUp,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
+
+const AiInsights = ({ data }: { data: any }) => {
+  const [insight, setInsight] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchInsight = async () => {
+    try {
+      setLoading(true);
+      const { data: aiRes } = await aiApi.analyzeDashboard(data);
+      setInsight(aiRes.analysis);
+    } catch (error) {
+      console.error("AI Insight error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (data) fetchInsight();
+  }, [data]);
+
+  return (
+    <Card className="border-primary/20 bg-primary/5 shadow-sm overflow-hidden relative">
+      <div className="absolute top-0 right-0 p-4 opacity-10">
+        <Sparkles className="h-24 w-24 text-primary" />
+      </div>
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+          <CardTitle className="text-lg">AI Business Insights</CardTitle>
+        </div>
+        <CardDescription>Powered by Qwen3-Coder Local AI</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="flex items-center gap-2 text-muted-foreground py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Analyzing your business data...</span>
+          </div>
+        ) : insight ? (
+          <div className="text-sm leading-relaxed text-foreground/80">
+            <ReactMarkdown
+              components={{
+                p: ({ children }) => (
+                  <p className="mb-2 last:mb-0">{children}</p>
+                ),
+                ul: ({ children }) => (
+                  <ul className="space-y-2 mb-2">{children}</ul>
+                ),
+                li: ({ children }) => (
+                  <li className="flex gap-2">
+                    <span className="text-primary">•</span>
+                    <span>{children}</span>
+                  </li>
+                ),
+                strong: ({ children }) => (
+                  <strong className="font-semibold text-primary">
+                    {children}
+                  </strong>
+                ),
+              }}
+            >
+              {insight}
+            </ReactMarkdown>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No insights available right now.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function DashboardPage() {
   const { data, isLoading } = reportQueries.useDashboard();
@@ -95,6 +180,8 @@ export default function DashboardPage() {
           </Card>
         ))}
       </div>
+
+      <AiInsights data={data} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border bg-card shadow-sm">

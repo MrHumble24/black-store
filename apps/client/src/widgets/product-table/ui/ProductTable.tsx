@@ -43,6 +43,34 @@ interface ProductTableProps {
   filters: ProductFilters;
 }
 
+const ExpandableDescription = ({ text }: { text: string }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLong = text.length > 50;
+
+  return (
+    <div className="flex flex-col max-w-[200px] sm:max-w-[300px]">
+      <span
+        className={`text-xs text-muted-foreground transition-all duration-200 whitespace-normal break-words ${
+          isExpanded ? "" : "line-clamp-1"
+        }`}
+      >
+        {text}
+      </span>
+      {isLong && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsExpanded(!isExpanded);
+          }}
+          className="text-[10px] text-primary hover:underline w-fit mt-0.5 font-medium"
+        >
+          {isExpanded ? "Show less" : "Read more"}
+        </button>
+      )}
+    </div>
+  );
+};
+
 export function ProductTable({ filters }: ProductTableProps) {
   const navigate = useNavigate();
   const { data: products, isLoading } = productQueries.useAll();
@@ -206,9 +234,7 @@ export function ProductTable({ filters }: ProductTableProps) {
                     <div className="flex flex-col">
                       <span className="font-medium">{product.name}</span>
                       {product.description && (
-                        <span className="text-xs text-muted-foreground line-clamp-1">
-                          {product.description}
-                        </span>
+                        <ExpandableDescription text={product.description} />
                       )}
                     </div>
                   </TableCell>

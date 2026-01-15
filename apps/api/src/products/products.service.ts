@@ -24,6 +24,7 @@ export class ProductsService {
     return this.prisma.product.create({
       data: {
         name: dto.name,
+        modelCode: dto.modelCode,
         description: dto.description,
         type: dto.type,
         minStock: dto.minStock ?? 5,
@@ -35,7 +36,6 @@ export class ProductsService {
                 sku: v.sku,
                 name: v.name,
                 specs: v.specs,
-                sellPrice: v.sellPrice,
               })),
             }
           : undefined,
@@ -116,7 +116,6 @@ export class ProductsService {
         sku: dto.sku,
         name: dto.name,
         specs: dto.specs,
-        sellPrice: dto.sellPrice,
       },
     });
   }
@@ -177,7 +176,6 @@ export class ProductsService {
             sku: v.sku,
             name: v.name,
             specs: v.specs,
-            sellPrice: v.sellPrice,
             isActive: v.isActive,
           },
         }),

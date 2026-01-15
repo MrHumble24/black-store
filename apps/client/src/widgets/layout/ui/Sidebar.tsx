@@ -19,6 +19,7 @@ import { Button } from "@/shared/ui/button";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { Separator } from "@/shared/ui/separator";
 import { cn } from "@/shared/lib/utils";
+import { ThemeToggle } from "@/shared/ui/theme-toggle";
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/" },
@@ -40,25 +41,32 @@ const settingsItems = [
   { label: "Providers", icon: Truck, href: "/settings/providers" },
 ];
 
-export function Sidebar() {
+interface SidebarContentProps {
+  onItemClick?: () => void;
+}
+
+export function SidebarContent({ onItemClick }: SidebarContentProps) {
   const location = useLocation();
   const { user, logout } = useAuthStore();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-border bg-card">
+    <div className="flex h-full flex-col bg-card">
       {/* Logo */}
-      <div className="flex h-16 items-center gap-3 px-6 border-b border-border">
-        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold">B</span>
+      <div className="flex h-16 items-center justify-between px-6 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold">B</span>
+          </div>
+          <span className="font-semibold text-foreground">Black Store</span>
         </div>
-        <span className="font-semibold text-foreground">Black Store</span>
+        <ThemeToggle />
       </div>
 
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <div className="space-y-1">
           {navItems.map((item) => (
-            <Link key={item.href} to={item.href}>
+            <Link key={item.href} to={item.href} onClick={onItemClick}>
               <Button
                 variant={
                   location.pathname === item.href ? "secondary" : "ghost"
@@ -82,7 +90,7 @@ export function Sidebar() {
             Settings
           </p>
           {settingsItems.map((item) => (
-            <Link key={item.href} to={item.href}>
+            <Link key={item.href} to={item.href} onClick={onItemClick}>
               <Button
                 variant={
                   location.pathname === item.href ? "secondary" : "ghost"
@@ -123,5 +131,13 @@ export function Sidebar() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <aside className="hidden lg:flex h-screen w-64 flex-col border-r border-border bg-card">
+      <SidebarContent />
+    </aside>
   );
 }

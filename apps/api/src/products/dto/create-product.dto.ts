@@ -27,10 +27,6 @@ export class CreateVariantDto {
 
   @IsObject()
   specs: Record<string, string>; // {color: "Black", storage: "128GB"}
-
-  @IsNumber()
-  @Min(0)
-  sellPrice: number;
 }
 
 export class UpdateVariantDto {
@@ -47,11 +43,6 @@ export class UpdateVariantDto {
   specs?: Record<string, string>;
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  sellPrice?: number;
-
-  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }
@@ -60,6 +51,10 @@ export class UpdateVariantDto {
 export class CreateProductDto {
   @IsString()
   name: string;
+
+  @IsOptional()
+  @IsString()
+  modelCode?: string;
 
   @IsOptional()
   @IsString()
@@ -90,6 +85,10 @@ export class UpdateProductDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  modelCode?: string;
 
   @IsOptional()
   @IsString()
@@ -136,10 +135,6 @@ export class BulkUpdateVariantDto {
   @IsOptional()
   @IsObject()
   specs?: Record<string, string>;
-
-  @IsOptional()
-  @IsNumber()
-  sellPrice?: number;
 
   @IsOptional()
   @IsBoolean()

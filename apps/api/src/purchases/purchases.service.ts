@@ -7,6 +7,7 @@ export class PurchasesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreatePurchaseDto, userId: number) {
+    const purchaseDate = dto.createdAt ? new Date(dto.createdAt) : new Date();
     const totalCost = dto.items.reduce(
       (sum, i) => sum + i.costPrice * i.quantity,
       0,
@@ -19,6 +20,7 @@ export class PurchasesService {
           userId,
           referenceNo: dto.referenceNo,
           totalCost,
+          createdAt: purchaseDate,
         },
       });
 
@@ -43,6 +45,7 @@ export class PurchasesService {
               quantity: 1,
               costPrice: item.costPrice,
               purchaseId: purchase.id,
+              createdAt: purchaseDate,
             },
           });
         } else {
@@ -53,6 +56,7 @@ export class PurchasesService {
               quantity: item.quantity,
               costPrice: item.costPrice,
               purchaseId: purchase.id,
+              createdAt: purchaseDate,
             },
           });
         }
@@ -64,6 +68,7 @@ export class PurchasesService {
             quantity: variant.product.type === 'SERIALIZED' ? 1 : item.quantity,
             toWarehouseId: item.warehouseId,
             userId,
+            createdAt: purchaseDate,
           },
         });
       }

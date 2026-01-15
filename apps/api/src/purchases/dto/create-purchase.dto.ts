@@ -37,6 +37,10 @@ export class CreatePurchaseDto {
   @IsString()
   referenceNo?: string;
 
+  @IsOptional()
+  @IsString()
+  createdAt?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PurchaseItemDto)

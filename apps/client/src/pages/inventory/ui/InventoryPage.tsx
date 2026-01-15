@@ -110,9 +110,11 @@ export default function InventoryPage() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground">
+        <div className="space-y-1">
+          <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight italic">
+            INVENTORY
+          </h1>
+          <p className="text-muted-foreground text-sm font-medium">
             Monitor and manage stock levels across all locations
           </p>
         </div>
@@ -120,65 +122,89 @@ export default function InventoryPage() {
           <Button
             variant="outline"
             onClick={() => navigate("/inventory/create")}
-            className="gap-2"
+            className="flex-1 sm:flex-none h-10 border-border bg-card text-muted-foreground hover:text-foreground"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 mr-2" />
             Manual Entry
           </Button>
-          <Button className="gap-2">
-            <ArrowRightLeft className="h-4 w-4" />
+          <Button
+            className="flex-1 sm:flex-none h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-600/10"
+            onClick={() => navigate("/inventory/transfer")}
+          >
+            <ArrowRightLeft className="h-4 w-4 mr-2" />
             Transfer
           </Button>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-primary/10 p-2">
-              <Box className="h-5 w-5 text-primary" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="rounded-xl border border-border bg-card/50 p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4  transition-opacity">
+            <Box className="h-12 w-12 text-blue-500" />
+          </div>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="rounded-xl bg-blue-500/10 p-3 border border-blue-500/20">
+              <Box className="h-6 w-6 text-blue-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Total Units</p>
-              <p className="text-2xl font-bold">{totalStock}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                Total Units
+              </p>
+              <p className="text-2xl font-black text-foreground">
+                {totalStock}
+              </p>
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-red-500/10 p-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+        <div className="rounded-xl border border-border bg-card/50 p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4  transition-opacity">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+          </div>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="rounded-xl bg-red-500/10 p-3 border border-red-500/20">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Low Stock Alert</p>
-              <p className="text-2xl font-bold">{lowStockItems}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                Low Stock Alert
+              </p>
+              <p className="text-2xl font-black text-foreground">
+                {lowStockItems}
+              </p>
             </div>
           </div>
         </div>
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/10 p-2">
-              <WarehouseIcon className="h-5 w-5 text-blue-500" />
+        <div className="rounded-xl border border-border bg-card/50 p-6 relative overflow-hidden group sm:col-span-2 lg:col-span-1">
+          <div className="absolute top-0 right-0 p-4  transition-opacity">
+            <WarehouseIcon className="h-12 w-12 text-emerald-500" />
+          </div>
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="rounded-xl bg-emerald-500/10 p-3 border border-emerald-500/20">
+              <WarehouseIcon className="h-6 w-6 text-emerald-500" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Active Locations</p>
-              <p className="text-2xl font-bold">{warehouses?.length || 0}</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
+                Active Locations
+              </p>
+              <p className="text-2xl font-black text-foreground">
+                {warehouses?.length || 0}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-muted/30 p-2 rounded-lg border border-border">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-72">
+      <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 bg-card/30 p-4 rounded-xl border border-border">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 flex-1">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search products, SKUs, serials..."
+              placeholder="Search products..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-9"
+              className="pl-9 h-10 bg-muted border-border rounded-lg text-sm"
             />
             {search && (
               <button
@@ -190,40 +216,42 @@ export default function InventoryPage() {
             )}
           </div>
 
-          <Select value={warehouseId} onValueChange={setWarehouseId}>
-            <SelectTrigger className="w-[180px]">
-              <WarehouseIcon className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="All Warehouses" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Warehouses</SelectItem>
-              {warehouses?.map((w) => (
-                <SelectItem key={w.id} value={String(w.id)}>
-                  {w.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex grid-cols-2 gap-2">
+            <Select value={warehouseId} onValueChange={setWarehouseId}>
+              <SelectTrigger className="flex-1 md:w-[180px] h-10 bg-muted/50 border-border rounded-lg text-xs font-bold">
+                <WarehouseIcon className="h-3.5 w-3.5 mr-2 text-blue-500" />
+                <SelectValue placeholder="Warehouses" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all">Everywhere</SelectItem>
+                {warehouses?.map((w) => (
+                  <SelectItem key={w.id} value={String(w.id)}>
+                    {w.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[150px]">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="AVAILABLE">Available</SelectItem>
-              <SelectItem value="DEFECTIVE">Defective</SelectItem>
-              <SelectItem value="RESERVED">Reserved</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="flex-1 md:w-[150px] h-10 bg-muted/50 border-border rounded-lg text-xs font-bold">
+                <Filter className="h-3.5 w-3.5 mr-2 text-purple-500" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="AVAILABLE">Available</SelectItem>
+                <SelectItem value="DEFECTIVE">Defective</SelectItem>
+                <SelectItem value="RESERVED">Reserved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 border border-border rounded-md p-1 bg-background">
+        <div className="flex items-center gap-1 border border-border rounded-lg p-1 bg-card self-end xl:self-auto">
           <Button
             variant={viewMode === "aggregated" ? "secondary" : "ghost"}
             size="sm"
-            className="h-8 gap-2"
+            className="h-8 gap-2 px-3 text-[10px] font-black uppercase tracking-tighter"
             onClick={() => setViewMode("aggregated")}
           >
             <LayoutGrid className="h-3.5 w-3.5" />
@@ -232,7 +260,7 @@ export default function InventoryPage() {
           <Button
             variant={viewMode === "detailed" ? "secondary" : "ghost"}
             size="sm"
-            className="h-8 gap-2"
+            className="h-8 gap-2 px-3 text-[10px] font-black uppercase tracking-tighter"
             onClick={() => setViewMode("detailed")}
           >
             <List className="h-3.5 w-3.5" />

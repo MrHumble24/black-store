@@ -105,6 +105,7 @@ async function main() {
     iphone15 = await prisma.product.create({
       data: {
         name: 'iPhone 15',
+        modelCode: 'A3090',
         description: 'Latest Apple iPhone',
         type: 'SERIALIZED',
         minStock: 5,
@@ -116,13 +117,11 @@ async function main() {
               sku: 'IP15-BLK-128',
               name: 'iPhone 15 Black 128GB',
               specs: { color: 'Black', storage: '128GB' },
-              sellPrice: 999.0,
             },
             {
               sku: 'IP15-BLU-256',
               name: 'iPhone 15 Blue 256GB',
               specs: { color: 'Blue', storage: '256GB' },
-              sellPrice: 1099.0,
             },
           ],
         },
@@ -137,6 +136,7 @@ async function main() {
     galaxyS24 = await prisma.product.create({
       data: {
         name: 'Galaxy S24',
+        modelCode: 'SM-S921B',
         description: 'Samsung flagship phone',
         type: 'SERIALIZED',
         minStock: 5,
@@ -148,7 +148,6 @@ async function main() {
               sku: 'GS24-BLK-256',
               name: 'Galaxy S24 Black 256GB',
               specs: { color: 'Black', storage: '256GB', ram: '8GB' },
-              sellPrice: 899.0,
             },
           ],
         },
@@ -248,17 +247,18 @@ async function main() {
     });
 
     if (saleItem) {
+      const sellPrice = 1200.0; // Use a manual price for seed sale
       await prisma.sale.create({
         data: {
           invoiceNo: 'INV-2024-001',
           userId: salesperson.id,
           customerName: 'Anvar Alimov',
-          totalAmount: saleItem.variant.sellPrice,
+          totalAmount: sellPrice,
           items: {
             create: {
               variantId: saleItem.variantId,
               quantity: 1,
-              sellPrice: saleItem.variant.sellPrice,
+              sellPrice: sellPrice,
               inventoryItem: {
                 connect: { id: saleItem.id },
               },

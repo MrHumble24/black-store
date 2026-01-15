@@ -1,8 +1,21 @@
 import axios from "axios";
 import { useAuthStore } from "@/entities/user/model/auth.store";
 
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_BASE_URL)
+    return import.meta.env.VITE_API_BASE_URL;
+
+  const { hostname } = window.location;
+  // If we are accessing via IP (not localhost), assume API is on the same IP
+  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+    return `http://${hostname}:3000`;
+  }
+
+  return "http://localhost:3000";
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000",
+  baseURL: getBaseURL(),
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });

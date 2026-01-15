@@ -32,13 +32,15 @@ import {
   Trash2,
   Boxes,
   Barcode,
-  DollarSign,
   Palette,
   Save,
   X,
   Smartphone,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { aiApi } from "@/shared/api/ai.api";
 
 // Predefined specs for mobile devices
 const MOBILE_SPEC_PRESETS = [
@@ -52,13 +54,11 @@ const MOBILE_SPEC_PRESETS = [
 
 type VariantFormData = {
   name: string;
-  sellPrice: string;
   specs: { key: string; value: string }[];
 };
 
 const createEmptyVariant = (): VariantFormData => ({
   name: "",
-  sellPrice: "",
   specs: MOBILE_SPEC_PRESETS.slice(0, 4).map((preset) => ({
     key: preset.key,
     value: "",
@@ -136,6 +136,7 @@ export default function CreateProductPage() {
 
   // Form state
   const [name, setName] = useState("");
+  const [modelCode, setModelCode] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"SERIALIZED" | "BATCH">("SERIALIZED");
   const [minStock, setMinStock] = useState("5");
@@ -144,6 +145,63 @@ export default function CreateProductPage() {
   const [variants, setVariants] = useState<VariantFormData[]>([
     createEmptyVariant(),
   ]);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
+  const [isAiGeneratingVariants, setIsAiGeneratingVariants] = useState(false);
+
+  const handleAiGenerateDescription = async () => {
+    if (!name) {
+      toast.error("Please enter a product name first");
+      return;
+    }
+
+    const categoryName =
+      categories?.find((c) => String(c.id) === categoryId)?.name || "";
+
+    try {
+      setIsAiGenerating(true);
+      const { data } = await aiApi.generateProductDescription(
+        name,
+        categoryName
+      );
+      setDescription(data.description);
+      toast.success("Description generated!");
+    } catch (error) {
+      toast.error("Failed to generate description with AI");
+    } finally {
+      setIsAiGenerating(false);
+    }
+  };
+
+  const handleAiGenerateVariants = async () => {
+    if (!name) {
+      toast.error("Please enter a product name first");
+      return;
+    }
+
+    const categoryName =
+      categories?.find((c) => String(c.id) === categoryId)?.name || "";
+
+    try {
+      setIsAiGeneratingVariants(true);
+      const { data } = await aiApi.generateProductVariants(name, categoryName);
+
+      if (data.variants && data.variants.length > 0) {
+        const newVariants = data.variants.map((v) => ({
+          name: v.name,
+          specs: Object.entries(v.specs).map(([key, value]) => ({
+            key,
+            value,
+          })),
+        }));
+        setVariants(newVariants);
+        toast.success(`Generated ${data.variants.length} variants!`);
+      }
+    } catch (error) {
+      toast.error("Failed to generate variants with AI");
+    } finally {
+      setIsAiGeneratingVariants(false);
+    }
+  };
 
   // Queries
   const { data: brands, isLoading: brandsLoading } = brandQueries.useAll();
@@ -261,11 +319,10 @@ export default function CreateProductPage() {
 
     // Transform variants to API format with auto-generated SKUs
     const variantPayloads: CreateVariantPayload[] = variants
-      .filter((v) => v.name && v.sellPrice)
+      .filter((v) => v.name)
       .map((v, index) => ({
         sku: generateSKU(name, brandName, v.name, v.specs, index),
         name: v.name,
-        sellPrice: parseFloat(v.sellPrice),
         specs: v.specs
           .filter((s) => s.key && s.value)
           .reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {}),
@@ -273,6 +330,7 @@ export default function CreateProductPage() {
 
     await createMutation.mutateAsync({
       name,
+      modelCode: modelCode || undefined,
       description: description || undefined,
       type,
       minStock: parseInt(minStock) || 5,
@@ -285,10 +343,7 @@ export default function CreateProductPage() {
   };
 
   const isFormValid =
-    name &&
-    brandId &&
-    categoryId &&
-    variants.some((v) => v.name && v.sellPrice);
+    name && brandId && categoryId && variants.some((v) => v.name);
 
   // Get placeholder for a spec key
   const getSpecPlaceholder = (key: string) => {
@@ -334,20 +389,49 @@ export default function CreateProductPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="name">Product Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="e.g., iPhone 15 Pro"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="bg-muted/50"
-                  required
-                />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Product Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="e.g., iPhone 15 Pro"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-muted/50"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="modelCode">Model Code</Label>
+                  <Input
+                    id="modelCode"
+                    placeholder="e.g., A3090, SM-S921B"
+                    value={modelCode}
+                    onChange={(e) => setModelCode(e.target.value)}
+                    className="bg-muted/50"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+              {/* <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="description">Description</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-2 text-primary hover:text-primary hover:bg-primary/10"
+                    onClick={handleAiGenerateDescription}
+                    disabled={isAiGenerating}
+                  >
+                    {isAiGenerating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Generate with AI
+                  </Button>
+                </div>
                 <Textarea
                   id="description"
                   placeholder="Describe your product..."
@@ -355,7 +439,7 @@ export default function CreateProductPage() {
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-muted/50 min-h-24"
                 />
-              </div>
+              </div> */}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -483,15 +567,32 @@ export default function CreateProductPage() {
                   </CardDescription>
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addVariant}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Add Variant
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-primary hover:text-primary hover:bg-primary/10"
+                  onClick={handleAiGenerateVariants}
+                  disabled={isAiGeneratingVariants}
+                >
+                  {isAiGeneratingVariants ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  Generate with AI
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addVariant}
+                  className="gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Variant
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -532,7 +633,7 @@ export default function CreateProductPage() {
                   </Badge>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-3 mb-4">
+                <div className="grid gap-4 sm:grid-cols-2 mb-4">
                   <div className="space-y-2">
                     <Label className="text-sm">
                       <Barcode className="inline h-3.5 w-3.5 mr-1.5" />
@@ -564,23 +665,6 @@ export default function CreateProductPage() {
                       value={variant.name}
                       onChange={(e) =>
                         updateVariant(vIndex, "name", e.target.value)
-                      }
-                      className="bg-background"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm">
-                      <DollarSign className="inline h-3.5 w-3.5 mr-1.5" />
-                      Sell Price *
-                    </Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      value={variant.sellPrice}
-                      onChange={(e) =>
-                        updateVariant(vIndex, "sellPrice", e.target.value)
                       }
                       className="bg-background"
                     />

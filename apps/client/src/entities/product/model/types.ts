@@ -3,13 +3,13 @@ export type ProductVariant = {
   sku: string;
   name: string;
   specs: Record<string, string>;
-  sellPrice: number;
   totalStock?: number;
 };
 
 export type Product = {
   id: number;
   name: string;
+  modelCode?: string;
   description?: string;
   type: "SERIALIZED" | "BATCH";
   minStock: number;
