@@ -42,7 +42,7 @@ export function DashboardLayout() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto relative">
-        <div className="container mx-auto p-4 md:p-6 lg:p-8 min-h-full">
+        <div className=" mx-auto p-4 md:p-6 lg:p-8 min-h-full">
           <Outlet />
         </div>
       </main>

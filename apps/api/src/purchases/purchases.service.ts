@@ -16,9 +16,11 @@ export class PurchasesService {
     return this.prisma.$transaction(async (tx) => {
       const purchase = await tx.purchase.create({
         data: {
+          type: dto.type || 'PROVIDER',
           providerId: dto.providerId,
           userId,
           referenceNo: dto.referenceNo,
+          sellerInfo: dto.sellerInfo,
           totalCost,
           createdAt: purchaseDate,
         },

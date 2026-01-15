@@ -12,14 +12,18 @@ export type PurchaseItem = {
 };
 
 interface PurchaseState {
+  type: "PROVIDER" | "WALKING_CUSTOMER";
   providerId: string;
+  sellerInfo: string;
   warehouseId: string;
   referenceNo: string;
   createdAt: string;
   items: PurchaseItem[];
 
   // Actions
+  setType: (type: "PROVIDER" | "WALKING_CUSTOMER") => void;
   setProviderId: (id: string) => void;
+  setSellerInfo: (info: string) => void;
   setWarehouseId: (id: string) => void;
   setReferenceNo: (no: string) => void;
   setCreatedAt: (date: string) => void;
@@ -32,13 +36,17 @@ interface PurchaseState {
 export const usePurchaseStore = create<PurchaseState>()(
   persist(
     (set) => ({
+      type: "PROVIDER",
       providerId: "",
+      sellerInfo: "",
       warehouseId: "",
       referenceNo: "",
       createdAt: new Date().toISOString().split("T")[0],
       items: [],
 
+      setType: (type) => set({ type }),
       setProviderId: (id) => set({ providerId: id }),
+      setSellerInfo: (info) => set({ sellerInfo: info }),
       setWarehouseId: (id) => set({ warehouseId: id }),
       setReferenceNo: (no) => set({ referenceNo: no }),
       setCreatedAt: (date) => set({ createdAt: date }),
@@ -62,7 +70,9 @@ export const usePurchaseStore = create<PurchaseState>()(
 
       resetForm: () =>
         set({
+          type: "PROVIDER",
           providerId: "",
+          sellerInfo: "",
           warehouseId: "",
           referenceNo: "",
           createdAt: new Date().toISOString().split("T")[0],

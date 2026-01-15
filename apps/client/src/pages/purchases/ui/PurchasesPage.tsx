@@ -2,13 +2,10 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { purchaseQueries } from "@/entities/purchase";
 import { Button } from "@/shared/ui/button";
-import { Input } from "@/shared/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 import {
-  Search,
   Plus,
   ExternalLink,
-  Filter,
   Download,
   Loader2,
   DollarSign,
@@ -24,24 +21,62 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
-import { format } from "date-fns";
+import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { PurchaseFilters } from "./PurchaseFilters";
+import type { PurchaseFilterValues } from "./PurchaseFilters";
+
+const INITIAL_FILTERS: PurchaseFilterValues = {
+  search: "",
+  type: "all",
+  providerId: "all",
+  startDate: "",
+  endDate: "",
+};
 
 export default function PurchasesPage() {
   const navigate = useNavigate();
   const { data: purchases, isLoading } = purchaseQueries.useAll();
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<PurchaseFilterValues>(INITIAL_FILTERS);
 
   const filteredPurchases = useMemo(() => {
     if (!purchases) return [];
-    return purchases.filter(
-      (p) =>
-        p.referenceNo?.toLowerCase().includes(search.toLowerCase()) ||
-        p.provider?.name?.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [purchases, search]);
+    return purchases.filter((p) => {
+      // Search
+      const matchesSearch =
+        !filters.search ||
+        p.referenceNo?.toLowerCase().includes(filters.search.toLowerCase()) ||
+        p.provider?.name
+          ?.toLowerCase()
+          .includes(filters.search.toLowerCase()) ||
+        p.sellerInfo?.toLowerCase().includes(filters.search.toLowerCase());
+
+      // Type
+      const matchesType = filters.type === "all" || p.type === filters.type;
+
+      // Provider
+      const matchesProvider =
+        filters.providerId === "all" ||
+        String(p.providerId) === filters.providerId;
+
+      // Date Range
+      let matchesDate = true;
+      if (filters.startDate || filters.endDate) {
+        const purchaseDate = new Date(p.createdAt);
+        const start = filters.startDate
+          ? startOfDay(new Date(filters.startDate))
+          : new Date(0);
+        const end = filters.endDate
+          ? endOfDay(new Date(filters.endDate))
+          : new Date(8640000000000000);
+        matchesDate = isWithinInterval(purchaseDate, { start, end });
+      }
+
+      return matchesSearch && matchesType && matchesProvider && matchesDate;
+    });
+  }, [purchases, filters]);
 
   const stats = useMemo(() => {
-    if (!purchases) return { totalPurchases: 0, expenditure: 0, itemsCount: 0 };
+    if (!purchases) return { totalPurchases: 0, expenditure: 0 };
     const totalPurchases = purchases.length;
     const expenditure = purchases.reduce(
       (acc, p) => acc + Number(p.totalCost),
@@ -53,9 +88,9 @@ export default function PurchasesPage() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center p-20 gap-4">
-        <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-        <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
-          Loading Purchases...
+        <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+        <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">
+          Decrypting Invoices...
         </p>
       </div>
     );
@@ -138,122 +173,112 @@ export default function PurchasesPage() {
       </div>
 
       {/* Main Table Card */}
-      <Card className="bg-card border-border overflow-hidden">
-        <div className="p-4 border-b border-border flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="relative flex-1 max-w-md group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
-            <Input
-              placeholder="Search reference or supplier..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-10 bg-muted border-border rounded-lg text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-muted-foreground"
-            >
-              <Filter className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <PurchaseFilters
+          filters={filters}
+          setFilters={setFilters}
+          onClear={() => setFilters(INITIAL_FILTERS)}
+        />
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                  Date
-                </TableHead>
-                <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                  Reference No.
-                </TableHead>
-                <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                  Supplier
-                </TableHead>
-                <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                  Received By
-                </TableHead>
-                <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right">
-                  Total Cost
-                </TableHead>
-                <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right">
-                  Actions
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPurchases.length === 0 ? (
+        <Card className="bg-card border-border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/50">
                 <TableRow className="border-border hover:bg-transparent">
-                  <TableCell colSpan={6} className="h-32 text-center">
-                    <p className="text-muted-foreground/60 italic text-sm">
-                      No purchase records found
-                    </p>
-                  </TableCell>
+                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
+                    Date
+                  </TableHead>
+                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
+                    Reference No.
+                  </TableHead>
+                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
+                    Supplier
+                  </TableHead>
+                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
+                    Received By
+                  </TableHead>
+                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right">
+                    Total Cost
+                  </TableHead>
+                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right">
+                    Actions
+                  </TableHead>
                 </TableRow>
-              ) : (
-                filteredPurchases.map((purchase) => (
-                  <TableRow
-                    key={purchase.id}
-                    className="border-border hover:bg-muted/40 cursor-pointer group"
-                    onClick={() => navigate(`/purchases/${purchase.id}`)}
-                  >
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-foreground/80 font-medium text-sm">
-                          {format(new Date(purchase.createdAt), "MMM d, yyyy")}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground/40 font-bold uppercase">
-                          {format(new Date(purchase.createdAt), "HH:mm")}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="border-border bg-muted/50 text-emerald-500 font-mono"
-                      >
-                        {purchase.referenceNo || "N/A"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-[10px] font-black text-emerald-500 border border-emerald-500/10">
-                          {purchase.provider?.name?.charAt(0) || "S"}
-                        </div>
-                        <span className="text-foreground font-bold text-sm">
-                          {purchase.provider?.name || "Unknown Supplier"}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-muted-foreground/60 text-xs font-medium">
-                        {purchase.user?.name || "System"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className="text-foreground font-black text-sm">
-                        ${Number(purchase.totalCost).toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground/40 group-hover:text-emerald-500 transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
+              </TableHeader>
+              <TableBody>
+                {filteredPurchases.length === 0 ? (
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableCell colSpan={6} className="h-32 text-center">
+                      <p className="text-muted-foreground/60 italic text-sm">
+                        No purchase records found
+                      </p>
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
+                ) : (
+                  filteredPurchases.map((purchase) => (
+                    <TableRow
+                      key={purchase.id}
+                      className="border-border hover:bg-muted/40 cursor-pointer group"
+                      onClick={() => navigate(`/purchases/${purchase.id}`)}
+                    >
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-foreground/80 font-medium text-sm">
+                            {format(
+                              new Date(purchase.createdAt),
+                              "MMM d, yyyy"
+                            )}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/40 font-bold uppercase">
+                            {format(new Date(purchase.createdAt), "HH:mm")}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="border-border bg-muted/50 text-emerald-500 font-mono"
+                        >
+                          {purchase.referenceNo || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-[10px] font-black text-emerald-500 border border-emerald-500/10">
+                            {purchase.provider?.name?.charAt(0) || "S"}
+                          </div>
+                          <span className="text-foreground font-bold text-sm">
+                            {purchase.provider?.name || "Unknown Supplier"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground/60 text-xs font-medium">
+                          {purchase.user?.name || "System"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="text-foreground font-black text-sm">
+                          ${Number(purchase.totalCost).toLocaleString()}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground/40 group-hover:text-emerald-500 transition-colors"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

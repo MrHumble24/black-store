@@ -15,7 +15,9 @@ export type PurchaseItem = {
 
 export type Purchase = {
   id: number;
-  providerId: number;
+  type: "PROVIDER" | "WALKING_CUSTOMER";
+  providerId?: number;
+  sellerInfo?: string;
   userId: number;
   referenceNo?: string;
   totalCost: number;

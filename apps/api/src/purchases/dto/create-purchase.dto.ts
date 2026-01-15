@@ -29,9 +29,23 @@ export class PurchaseItemDto {
   warehouseId: number;
 }
 
+export enum PurchaseType {
+  PROVIDER = 'PROVIDER',
+  WALKING_CUSTOMER = 'WALKING_CUSTOMER',
+}
+
 export class CreatePurchaseDto {
+  @IsOptional()
   @IsInt()
-  providerId: number;
+  providerId?: number;
+
+  @IsOptional()
+  @IsString()
+  type?: PurchaseType;
+
+  @IsOptional()
+  @IsString()
+  sellerInfo?: string;
 
   @IsOptional()
   @IsString()

@@ -43,16 +43,22 @@ import {
 import { Badge } from "@/shared/ui/badge";
 import { toast } from "sonner";
 import { usePurchaseStore } from "../model/purchase-store";
+import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
+import { User, Store } from "lucide-react";
 
 export default function CreatePurchasePage() {
   const navigate = useNavigate();
   const {
+    type,
     providerId,
+    sellerInfo,
     warehouseId,
     referenceNo,
     items,
     createdAt,
+    setType,
     setProviderId,
+    setSellerInfo,
     setWarehouseId,
     setReferenceNo,
     setCreatedAt,
@@ -125,7 +131,10 @@ export default function CreatePurchasePage() {
   );
 
   const handleSubmit = () => {
-    if (!providerId) return toast.error("Please select a provider");
+    if (type === "PROVIDER" && !providerId)
+      return toast.error("Please select a provider");
+    if (type === "WALKING_CUSTOMER" && !sellerInfo)
+      return toast.error("Please enter seller information");
     if (!warehouseId) return toast.error("Please select a warehouse");
     if (items.length === 0) return toast.error("Please add at least one item");
 
@@ -141,7 +150,9 @@ export default function CreatePurchasePage() {
 
     createPurchaseMutation.mutate(
       {
-        providerId: Number(providerId),
+        type,
+        providerId: type === "PROVIDER" ? Number(providerId) : undefined,
+        sellerInfo: type === "WALKING_CUSTOMER" ? sellerInfo : undefined,
         warehouseId: Number(warehouseId),
         referenceNo,
         createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
@@ -200,27 +211,72 @@ export default function CreatePurchasePage() {
         </Button>
       </div>
 
+      {/* Purchase Type & Top Bar */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center">
+        <Tabs
+          value={type}
+          onValueChange={(v) => setType(v as "PROVIDER" | "WALKING_CUSTOMER")}
+          className="w-full lg:w-auto"
+        >
+          <TabsList className="bg-card border border-border h-12 p-1 rounded-xl">
+            <TabsTrigger
+              value="PROVIDER"
+              className="px-6 rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-wider gap-2 h-full"
+            >
+              <Store className="w-3.5 h-3.5" />
+              Supplier Purchase
+            </TabsTrigger>
+            <TabsTrigger
+              value="WALKING_CUSTOMER"
+              className="px-6 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-wider gap-2 h-full"
+            >
+              <User className="w-3.5 h-3.5" />
+              Walking Seller
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       {/* Top Bar Info */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
-          <CardContent className="p-4 space-y-2">
-            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-              Supplier
-            </label>
-            <Select value={providerId} onValueChange={setProviderId}>
-              <SelectTrigger className="h-10 bg-muted border-border rounded-lg text-xs font-bold">
-                <SelectValue placeholder="Select Supplier" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border">
-                {providers?.map((p) => (
-                  <SelectItem key={p.id} value={String(p.id)}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        {type === "PROVIDER" ? (
+          <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
+            <CardContent className="p-4 space-y-2">
+              <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
+                Supplier
+              </label>
+              <Select value={providerId} onValueChange={setProviderId}>
+                <SelectTrigger className="h-10 bg-muted border-border rounded-lg text-xs font-bold">
+                  <SelectValue placeholder="Select Supplier" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border">
+                  {providers?.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1 border-l-4 border-l-blue-500">
+            <CardContent className="p-4 space-y-2">
+              <label className="text-[10px] font-black uppercase text-blue-500 tracking-wider">
+                Seller Details
+              </label>
+              <div className="relative">
+                <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Name / Phone / ID..."
+                  value={sellerInfo}
+                  onChange={(e) => setSellerInfo(e.target.value)}
+                  className="pl-8 h-10 bg-muted border-border rounded-lg text-xs font-bold"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
           <CardContent className="p-4 space-y-2">
