@@ -91,7 +91,7 @@ export default function SaleDetailsPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-12">
+    <div className=" mx-auto space-y-8 pb-12">
       {/* Premium Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

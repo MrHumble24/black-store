@@ -9,10 +9,12 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/shared/ui/sheet";
-import { Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { useLayoutStore } from "@/shared/model/layout.store";
 
 export function DashboardLayout() {
   const [open, setOpen] = useState(false);
+  const { isSidebarCollapsed, toggleSidebar } = useLayoutStore();
 
   return (
     <div className="flex flex-col lg:flex-row h-screen bg-background text-foreground overflow-hidden">
@@ -38,7 +40,21 @@ export function DashboardLayout() {
       </header>
 
       {/* Desktop Sidebar */}
-      <Sidebar />
+      <div className="relative hidden lg:block h-screen shrink-0">
+        <Sidebar isCollapsed={isSidebarCollapsed} />
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute -right-3 top-20 h-6 w-6 rounded-full border border-border shadow-md z-50 hover:bg-primary hover:text-primary-foreground transition-all"
+          onClick={toggleSidebar}
+        >
+          {isSidebarCollapsed ? (
+            <ChevronRight className="h-3 w-3" />
+          ) : (
+            <ChevronLeft className="h-3 w-3" />
+          )}
+        </Button>
+      </div>
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto relative">

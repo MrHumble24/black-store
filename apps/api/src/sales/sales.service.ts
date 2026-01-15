@@ -7,11 +7,17 @@ export class SalesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateSaleDto, userId: number) {
-    const totalAmount = dto.items.reduce(
+    const subtotal = dto.items.reduce(
       (sum, i) => sum + i.sellPrice * i.quantity,
       0,
     );
-    const invoiceNo = `INV-${Date.now()}`;
+    const totalAmount =
+      subtotal - (dto.discountAmount || 0) + (dto.taxAmount || 0);
+
+    const saleDate = dto.createdAt ? new Date(dto.createdAt) : new Date();
+    const invoiceNo =
+      dto.invoiceNo ||
+      `INV-${saleDate.getFullYear()}${(saleDate.getMonth() + 1).toString().padStart(2, '0')}${saleDate.getDate().toString().padStart(2, '0')}-${Date.now().toString().slice(-6)}`;
 
     return this.prisma.$transaction(async (tx) => {
       const sale = await tx.sale.create({
@@ -19,7 +25,12 @@ export class SalesService {
           invoiceNo,
           userId,
           customerName: dto.customerName,
+          customerPhone: dto.customerPhone,
+          paymentMethod: dto.paymentMethod,
           totalAmount,
+          discountAmount: dto.discountAmount || 0,
+          taxAmount: dto.taxAmount || 0,
+          createdAt: saleDate,
         },
       });
 
@@ -84,14 +95,44 @@ export class SalesService {
 
       return tx.sale.findUnique({
         where: { id: sale.id },
-        include: { items: { include: { variant: true } } },
+        include: {
+          items: {
+            include: {
+              variant: {
+                include: { product: true },
+              },
+            },
+          },
+        },
       });
     });
   }
 
   findAll() {
     return this.prisma.sale.findMany({
-      include: { user: { select: { id: true, name: true } } },
+      include: {
+        user: { select: { id: true, name: true } },
+        items: {
+          include: {
+            variant: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    brandId: true,
+                    categoryId: true,
+                  },
+                },
+                inventory: {
+                  select: { costPrice: true },
+                  take: 1,
+                },
+              },
+            },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

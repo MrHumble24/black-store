@@ -20,6 +20,12 @@ export type InventoryItem = {
   updatedAt: string;
   variant?: ProductVariant & { product: Product };
   warehouse?: Warehouse;
+  purchase?: {
+    id: number;
+    provider?: { name: string };
+    type: "PROVIDER" | "WALKING_CUSTOMER";
+    sellerInfo?: string;
+  };
 };
 
 export type UpdateInventoryPayload = {

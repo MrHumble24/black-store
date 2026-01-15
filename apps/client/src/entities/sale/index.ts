@@ -10,14 +10,30 @@ export type SaleItem = {
   sellPrice: number;
   warrantyEnd?: string;
   serialNumber?: string;
-  variant?: any;
+  variant?: {
+    id: number;
+    name: string;
+    product: {
+      id: number;
+      name: string;
+      brandId: number;
+      categoryId: number;
+    };
+    inventory?: {
+      costPrice: number;
+    }[];
+  };
 };
 
 export type Sale = {
   id: number;
   invoiceNo: string;
   customerName?: string;
+  customerPhone?: string;
+  paymentMethod: string;
   totalAmount: number;
+  discountAmount: number;
+  taxAmount: number;
   createdAt: string;
   items: SaleItem[];
   user?: { id: number; name: string };
@@ -26,7 +42,7 @@ export type Sale = {
 export const salesApi = {
   getAll: () => api.get<Sale[]>("/sales"),
   getOne: (id: number) => api.get<Sale>(`/sales/${id}`),
-  create: (data: any) => api.post<Sale>("/sales", data),
+  create: (data: any) => api.post<Sale>("/sales", data).then((res) => res.data),
 };
 
 export const salesQueries = {

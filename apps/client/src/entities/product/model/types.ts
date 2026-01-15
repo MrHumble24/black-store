@@ -13,6 +13,8 @@ export type Product = {
   description?: string;
   type: "SERIALIZED" | "BATCH";
   minStock: number;
+  brandId: number;
+  categoryId: number;
   brand: { id: number; name: string };
   category: { id: number; name: string };
   variants: ProductVariant[];

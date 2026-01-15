@@ -212,7 +212,7 @@ export function ProductTable({ filters }: ProductTableProps) {
               <TableHead className="font-semibold">Category</TableHead>
               <TableHead className="font-semibold">Brand</TableHead>
               <TableHead className="font-semibold">Variants</TableHead>
-              <TableHead className="font-semibold">Price Range</TableHead>
+
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -270,13 +270,13 @@ export function ProductTable({ filters }: ProductTableProps) {
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  {/* <TableCell>
                     <div className="font-medium">
                       {min === max
                         ? `$${min.toLocaleString()}`
                         : `$${min.toLocaleString()} - $${max.toLocaleString()}`}
                     </div>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

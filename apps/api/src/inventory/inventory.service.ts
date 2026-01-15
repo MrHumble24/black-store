@@ -27,7 +27,11 @@ export class InventoryService {
         ...(status && { status: status as any }),
         ...(variantId && { variantId }),
       },
-      include: { variant: { include: { product: true } }, warehouse: true },
+      include: {
+        variant: { include: { product: true } },
+        warehouse: true,
+        purchase: { include: { provider: true } },
+      },
     });
   }
 

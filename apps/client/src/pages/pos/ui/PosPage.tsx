@@ -18,11 +18,18 @@ import {
   CreditCard,
   User,
   Package,
-  History,
   Loader2,
   ChevronRight,
+  Phone,
+  Banknote,
+  Percent,
+  CircleDot,
+  PauseCircle,
+  PlayCircle,
+  Smartphone,
 } from "lucide-react";
 import { BarcodeScanner } from "@/shared/ui/barcode-scanner";
+import { SaleSuccessModal } from "./SaleSuccessModal";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import {
@@ -39,14 +46,31 @@ export default function PosPage() {
   const navigate = useNavigate();
   const {
     cart,
+    customerName,
+    customerPhone,
+    paymentMethod,
+    discountAmount,
+    taxAmount,
+    invoiceNo,
+    createdAt,
+    heldCarts,
+    setCustomerName,
+    setCustomerPhone,
+    setInvoiceNo,
+    setCreatedAt,
+    setPaymentMethod,
+    setDiscountAmount,
+    setTaxAmount,
     addItem,
     removeItem,
     updateQuantity,
     updatePrice,
-    total,
     clearCart,
-    customerName,
-    setCustomerName,
+    holdCurrentCart,
+    resumeCart,
+    deleteHeldCart,
+    getSubtotal,
+    getTotal,
   } = usePosStore();
   const createSaleMutation = salesQueries.useCreate();
   const { data: warehouses } = warehouseQueries.useAll();
@@ -54,6 +78,8 @@ export default function PosPage() {
   const [warehouseId, setWarehouseId] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [lastSale, setLastSale] = useState<any>(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // Fetch all available inventory
   const { data: inventory, isLoading } = inventoryQueries.useAll({
@@ -77,6 +103,7 @@ export default function PosPage() {
           name: v.name,
           productName: v.product.name,
           productType: v.product.type,
+          modelCode: v.product.modelCode,
           sellPrice: Number(item.costPrice), // Use costPrice as default
           totalStock: 0,
           items: [],
@@ -87,12 +114,18 @@ export default function PosPage() {
       existing.items.push(item);
     });
 
-    return Array.from(productMap.values()).filter(
-      (p) =>
-        p.productName.toLowerCase().includes(search.toLowerCase()) ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.sku.toLowerCase().includes(search.toLowerCase())
-    );
+    return Array.from(productMap.values()).filter((p) => {
+      const searchLower = search.toLowerCase();
+      return (
+        p.productName.toLowerCase().includes(searchLower) ||
+        p.name.toLowerCase().includes(searchLower) ||
+        p.sku.toLowerCase().includes(searchLower) ||
+        (p.modelCode && p.modelCode.toLowerCase().includes(searchLower)) ||
+        p.items.some((item: any) =>
+          item.serialNumber?.toLowerCase().includes(searchLower)
+        )
+      );
+    });
   }, [inventory, search]);
 
   const handleAddToCart = (product: any, specificItem?: any) => {
@@ -148,12 +181,20 @@ export default function PosPage() {
     toast.error("Not found");
   };
 
+  const [receivedAmount, setReceivedAmount] = useState<number | string>("");
+
   const handleCheckout = () => {
     if (cart.length === 0) return;
 
     createSaleMutation.mutate(
       {
         customerName: customerName || "Walking Customer",
+        customerPhone: customerPhone || undefined,
+        paymentMethod,
+        discountAmount,
+        taxAmount,
+        invoiceNo: invoiceNo || undefined,
+        createdAt: createdAt || undefined,
         items: cart.map((item) => ({
           variantId: item.variantId,
           quantity: item.quantity,
@@ -162,13 +203,23 @@ export default function PosPage() {
         })),
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
+          setLastSale(data);
+          setIsSuccessModalOpen(true);
           clearCart();
-          navigate("/inventory");
+          setReceivedAmount("");
+          toast.success("Sale completed successfully!");
         },
       }
     );
   };
+
+  const subtotal = getSubtotal();
+  const total = getTotal();
+  const change =
+    typeof receivedAmount === "number" && receivedAmount >= total
+      ? receivedAmount - total
+      : 0;
 
   return (
     <div className="flex flex-col h-full lg:h-[calc(100vh-8rem)] gap-3">
@@ -197,37 +248,81 @@ export default function PosPage() {
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          {heldCarts.length > 0 && (
+            <div className="flex items-center gap-1 mr-2 px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <PauseCircle className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[10px] font-black text-amber-500 uppercase">
+                {heldCarts.length} HELD
+              </span>
+            </div>
+          )}
           <div className="flex flex-1 items-center gap-2 bg-muted/50 border border-border px-3 py-1.5 rounded-lg focus-within:border-blue-500/50 transition-colors">
             <User className="w-3.5 h-3.5 text-muted-foreground" />
             <input
-              placeholder="Customer"
+              placeholder="Name"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full sm:w-32"
+              className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full sm:w-24"
+            />
+          </div>
+          <div className="flex flex-1 items-center gap-2 bg-muted/50 border border-border px-3 py-1.5 rounded-lg focus-within:border-blue-500/50 transition-colors">
+            <ScanBarcode className="w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              placeholder="Invoice #"
+              value={invoiceNo}
+              onChange={(e) => setInvoiceNo(e.target.value)}
+              className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full sm:w-24"
+            />
+          </div>
+          <div className="flex flex-1 items-center gap-2 bg-muted/50 border border-border px-3 py-1.5 rounded-lg focus-within:border-blue-500/50 transition-colors">
+            <User className="w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              placeholder="Date"
+              type="date"
+              value={createdAt}
+              onChange={(e) => setCreatedAt(e.target.value)}
+              className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full sm:w-24"
+            />
+          </div>
+          <div className="flex flex-1 items-center gap-2 bg-muted/50 border border-border px-3 py-1.5 rounded-lg focus-within:border-blue-500/50 transition-colors">
+            <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              placeholder="Phone"
+              value={customerPhone}
+              onChange={(e) => setCustomerPhone(e.target.value)}
+              className="bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground w-full sm:w-24"
             />
           </div>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/inventory/movements")}
-            className="text-muted-foreground hover:text-foreground h-9 px-3 shrink-0"
+            onClick={() => {
+              if (cart.length > 0) {
+                const label = prompt(
+                  "Cart Label:",
+                  `Customer ${customerName || heldCarts.length + 1}`
+                );
+                if (label) holdCurrentCart(label);
+              }
+            }}
+            disabled={cart.length === 0}
+            className="text-amber-500 hover:text-amber-600 h-9 px-3 shrink-0"
           >
-            <History className="w-4 h-4 sm:mr-2" />
-            <span className="hidden sm:inline">Archive</span>
+            <PauseCircle className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Hold</span>
           </Button>
         </div>
       </div>
-
-      <div className="flex flex-col lg:flex-row flex-1 gap-3 min-h-0">
+      <div className="flex flex-col lg:flex-row flex-1 gap-3 min-h-0 overflow-hidden">
         {/* Left: Product Selection (List Layout) */}
-        <div className="flex-7 flex flex-col min-w-0">
-          <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden rounded-xl">
+        <div className="lg:basis-7/12 flex flex-col min-w-0 min-h-0 overflow-hidden">
+          <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden rounded-xl shadow-sm">
             {/* Search Bar */}
             <div className="p-3 border-b border-border flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Scan or Search..."
+                  placeholder="Search by IMEI, Model, SKU or Name..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 h-11 bg-muted/50 border-border rounded-lg text-sm"
@@ -248,17 +343,8 @@ export default function PosPage() {
                     ))}
                   </SelectContent>
                 </Select>
-
-                <Button
-                  onClick={() => setIsScannerOpen(true)}
-                  className="h-11 px-5 bg-foreground hover:bg-muted text-background rounded-lg font-bold flex gap-2 shrink-0"
-                >
-                  <ScanBarcode className="w-4 h-4" />
-                  <span className="hidden sm:inline">Scan</span>
-                </Button>
               </div>
             </div>
-
             {/* Product List */}
             <ScrollArea className="flex-1">
               {isLoading ? (
@@ -390,8 +476,8 @@ export default function PosPage() {
         </div>
 
         {/* Right: Cart (Compact) */}
-        <div className="flex-3 flex flex-col min-w-[320px]">
-          <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden rounded-xl shadow-2xl">
+        <div className="lg:basis-5/12 flex flex-col min-w-[360px] min-h-0 overflow-hidden">
+          <Card className="bg-card border-border flex-1 flex flex-col overflow-hidden rounded-xl shadow-2xl min-h-0">
             <div className="p-4 bg-muted/20 border-b border-border flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-blue-500" />
@@ -522,44 +608,197 @@ export default function PosPage() {
               )}
             </ScrollArea>
 
-            {/* Total & Checkout */}
-            <div className="p-4 bg-muted/40 border-t border-border space-y-3">
-              <div className="flex justify-between items-center text-foreground">
-                <div>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                    Total Pay
-                  </p>
-                  <p className="text-2xl font-black tracking-tighter">
-                    ${total.toLocaleString()}
-                  </p>
-                </div>
-                <ShoppingCart className="w-6 h-6 text-muted" />
+            {/* Checkout Area Enhancement */}
+            <div className="p-4 bg-muted/40 border-t border-border space-y-4">
+              {/* Payment Method Selector */}
+              <div className="grid grid-cols-4 gap-2">
+                {(["CASH", "CARD", "TRANSFER", "OTHER"] as const).map((m) => (
+                  <Button
+                    key={m}
+                    variant={paymentMethod === m ? "default" : "outline"}
+                    onClick={() => setPaymentMethod(m)}
+                    className={cn(
+                      "h-10 text-[10px] font-black uppercase tracking-tighter rounded-lg transition-all",
+                      paymentMethod === m
+                        ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-600/20 hover:bg-blue-700"
+                        : "border-border text-muted-foreground"
+                    )}
+                  >
+                    {m === "CASH" && <Banknote className="w-3 h-3 mr-1" />}
+                    {m === "CARD" && <CreditCard className="w-3 h-3 mr-1" />}
+                    {m === "TRANSFER" && (
+                      <Smartphone className="w-3 h-3 mr-1" />
+                    )}
+                    {m}
+                  </Button>
+                ))}
               </div>
 
-              <Button
-                disabled={cart.length === 0 || createSaleMutation.isPending}
-                onClick={handleCheckout}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm shadow-xl shadow-blue-600/10 transition-all active:scale-95"
-              >
-                {createSaleMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    <span>Confirm Sale</span>
-                    <ChevronRight className="w-4 h-4" />
+              {/* Discount & Tax */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                    <Percent className="w-3 h-3" /> Discount
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                      $
+                    </span>
+                    <Input
+                      type="number"
+                      value={discountAmount || ""}
+                      onChange={(e) =>
+                        setDiscountAmount(Number(e.target.value))
+                      }
+                      className="pl-6 h-9 bg-muted/50 border-border text-xs font-black"
+                      placeholder="0.00"
+                    />
                   </div>
-                )}
-              </Button>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1">
+                    <CircleDot className="w-3 h-3" /> Tax
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted-foreground">
+                      $
+                    </span>
+                    <Input
+                      type="number"
+                      value={taxAmount || ""}
+                      onChange={(e) => setTaxAmount(Number(e.target.value))}
+                      className="pl-6 h-9 bg-muted/50 border-border text-xs font-black"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Cash Handling */}
+              {paymentMethod === "CASH" && (
+                <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-black text-emerald-600 uppercase">
+                      Cash Received
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600">
+                        $
+                      </span>
+                      <input
+                        type="number"
+                        value={receivedAmount}
+                        onChange={(e) =>
+                          setReceivedAmount(Number(e.target.value))
+                        }
+                        className="bg-emerald-500/10 border-none outline-none text-right font-black text-sm text-emerald-700 w-24 p-1.5 rounded-lg"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+                  {change > 0 && (
+                    <div className="flex justify-between items-center pt-1 border-t border-emerald-500/10">
+                      <span className="text-[10px] font-black text-emerald-600 uppercase">
+                        Change back
+                      </span>
+                      <span className="text-sm font-black text-emerald-600">
+                        ${change.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Total Card */}
+              <div className="bg-foreground text-background p-4 rounded-xl shadow-xl space-y-3">
+                <div className="flex justify-between items-center border-b border-background/10 pb-2">
+                  <span className="text-[10px] font-black uppercase opacity-60">
+                    Subtotal
+                  </span>
+                  <span className="text-xs font-bold">
+                    ${subtotal.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black uppercase opacity-60 tracking-widest">
+                      TOTAL PAYABLE
+                    </p>
+                    <p className="text-3xl font-black tracking-tighter">
+                      ${total.toLocaleString()}
+                    </p>
+                  </div>
+                  <CreditCard className="w-8 h-8 opacity-20" />
+                </div>
+
+                <Button
+                  disabled={cart.length === 0 || createSaleMutation.isPending}
+                  onClick={handleCheckout}
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-black text-sm shadow-xl shadow-blue-600/30 transition-all active:scale-[0.98] border-none"
+                >
+                  {createSaleMutation.isPending ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <CreditCard className="w-4 h-4" />
+                      Checkout
+                      <ChevronRight className="w-4 h-4" />
+                    </div>
+                  )}
+                </Button>
+              </div>
+
+              {/* Held Carts Peek */}
+              {heldCarts.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-2">
+                    Pending Sessions
+                  </p>
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {heldCarts.map((hc) => (
+                      <div
+                        key={hc.id}
+                        className="flex flex-col gap-1 min-w-[120px] bg-muted/50 border border-border p-2 rounded-lg"
+                      >
+                        <p className="text-[10px] font-bold text-foreground truncate">
+                          {hc.label}
+                        </p>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-6 w-6 rounded"
+                            onClick={() => resumeCart(hc.id)}
+                          >
+                            <PlayCircle className="w-3 h-3 text-blue-500" />
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="icon"
+                            className="h-6 w-6 rounded"
+                            onClick={() => deleteHeldCart(hc.id)}
+                          >
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </Card>
         </div>
       </div>
-
       <BarcodeScanner
         isOpen={isScannerOpen}
         onScan={handleBarcodeScan}
         onClose={() => setIsScannerOpen(false)}
+      />
+      <SaleSuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        sale={lastSale}
       />
     </div>
   );

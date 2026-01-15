@@ -31,10 +31,43 @@ export class SaleItemDto {
   warrantyEnd?: string;
 }
 
+export enum PaymentMethod {
+  CASH = 'CASH',
+  CARD = 'CARD',
+  TRANSFER = 'TRANSFER',
+  OTHER = 'OTHER',
+}
+
 export class CreateSaleDto {
   @IsOptional()
   @IsString()
   customerName?: string;
+
+  @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  discountAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  taxAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  invoiceNo?: string;
+
+  @IsOptional()
+  @IsDateString()
+  createdAt?: string;
 
   @IsArray()
   @ValidateNested({ each: true })
