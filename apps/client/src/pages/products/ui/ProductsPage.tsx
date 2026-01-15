@@ -9,6 +9,7 @@ import {
   defaultFilters,
   type ProductFilters,
 } from "@/features/product-filters";
+import { ExportProductsButton } from "@/features/export-products";
 import {
   Card,
   CardContent,
@@ -55,12 +56,15 @@ export default function ProductsPage() {
             Manage your product catalog, variants, and stock levels.
           </p>
         </div>
-        <Button asChild className="gap-2">
-          <Link to="/products/create">
-            <Plus className="h-4 w-4" />
-            Add Product
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ExportProductsButton products={products || []} />
+          <Button asChild className="gap-2">
+            <Link to="/products/create">
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Stats Grid */}

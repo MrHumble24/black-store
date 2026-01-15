@@ -25,6 +25,8 @@ import ReturnDetailsPage from "@/pages/returns/ui/ReturnDetailsPage";
 import ExpensesPage from "@/pages/expenses/ui/ExpensesPage";
 import ReportsPage from "@/pages/reports/ui/ReportsPage";
 import NotFoundPage from "@/pages/not-found/ui/NotFoundPage";
+import { BackupPage } from "@/pages/settings";
+import { EmergencyRestorePage } from "@/pages/settings/ui/EmergencyRestorePage";
 
 // Placeholder pages (to be implemented)
 function PlaceholderPage({ title }: { title: string }) {
@@ -41,6 +43,7 @@ export default function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/emergency-restore" element={<EmergencyRestorePage />} />
 
       {/* Protected routes with layout */}
       <Route
@@ -76,6 +79,7 @@ export default function AppRoutes() {
         <Route path="/settings/brands" element={<BrandsPage />} />
         <Route path="/settings/categories" element={<CategoriesPage />} />
         <Route path="/settings/providers" element={<ProvidersPage />} />
+        <Route path="/settings/backup" element={<BackupPage />} />
       </Route>
 
       {/* 404 */}

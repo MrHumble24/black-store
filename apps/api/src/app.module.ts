@@ -23,6 +23,8 @@ import { LookupModule } from './lookup/lookup.module';
 import { WarrantyModule } from './warranty/warranty.module';
 
 import { AiModule } from './ai/ai.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   controllers: [AppController],
@@ -32,6 +34,7 @@ import { AiModule } from './ai/ai.module';
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
   imports: [
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     UsersModule,
@@ -50,6 +53,7 @@ import { AiModule } from './ai/ai.module';
     LookupModule,
     WarrantyModule,
     AiModule,
+    BackupModule,
   ],
 })
 export class AppModule {}

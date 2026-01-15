@@ -14,6 +14,7 @@ import {
   Truck,
   Tags,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -39,6 +40,7 @@ const settingsItems = [
   { label: "Brands", icon: Tags, href: "/settings/brands" },
   { label: "Categories", icon: Layers, href: "/settings/categories" },
   { label: "Providers", icon: Truck, href: "/settings/providers" },
+  { label: "System Backup", icon: ShieldCheck, href: "/settings/backup" },
 ];
 
 interface SidebarContentProps {

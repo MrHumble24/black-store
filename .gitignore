@@ -68,3 +68,7 @@ pids
 .cache/
 .parcel-cache/
 .rollup.cache/
+
+# App Specific
+apps/api/backups/
+apps/api/_old_git/
