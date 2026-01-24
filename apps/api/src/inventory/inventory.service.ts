@@ -20,8 +20,8 @@ export class InventoryService {
     });
   }
 
-  findAll(warehouseId?: number, status?: string, variantId?: number) {
-    return this.prisma.inventoryItem.findMany({
+  async findAll(warehouseId?: number, status?: string, variantId?: number) {
+    const items = await this.prisma.inventoryItem.findMany({
       where: {
         ...(warehouseId && { warehouseId }),
         ...(status && { status: status as any }),
@@ -33,6 +33,35 @@ export class InventoryService {
         purchase: { include: { provider: true } },
       },
     });
+
+    // Get all RETURN_RESTOCK movements for these items' products
+    const productIds = [
+      ...new Set(items.map((i) => i.variant?.product?.id).filter(Boolean)),
+    ];
+
+    const restockMovements = await this.prisma.stockMovement.findMany({
+      where: {
+        productId: { in: productIds as number[] },
+        type: 'RETURN_RESTOCK',
+      },
+      select: {
+        productId: true,
+        toWarehouseId: true,
+      },
+    });
+
+    // Create a Set of productId+warehouseId combos that have been restocked
+    const restockedSet = new Set(
+      restockMovements.map((m) => `${m.productId}-${m.toWarehouseId}`),
+    );
+
+    // Add isRestocked flag to each item
+    return items.map((item) => ({
+      ...item,
+      isRestocked: restockedSet.has(
+        `${item.variant?.product?.id}-${item.warehouseId}`,
+      ),
+    }));
   }
 
   async findOne(id: number) {

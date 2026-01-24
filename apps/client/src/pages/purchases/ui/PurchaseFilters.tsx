@@ -9,6 +9,7 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Search, Filter, X, Calendar, Store, User } from "lucide-react";
 import { providerQueries } from "@/entities/provider";
+import { useTranslation } from "react-i18next";
 
 export type PurchaseFilterValues = {
   search: string;
@@ -29,6 +30,7 @@ export function PurchaseFilters({
   setFilters,
   onClear,
 }: PurchaseFiltersProps) {
+  const { t } = useTranslation();
   const { data: providers } = providerQueries.useAll();
 
   const activeFiltersCount = [
@@ -45,7 +47,7 @@ export function PurchaseFilters({
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-emerald-500 transition-colors" />
           <Input
-            placeholder="Search reference, supplier or seller..."
+            placeholder={t("purchases.filters.search_placeholder")}
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             className="pl-9 h-10 bg-muted border-border rounded-lg text-sm transition-all focus:ring-2 focus:ring-emerald-500/20"
@@ -69,21 +71,25 @@ export function PurchaseFilters({
             <SelectTrigger className="w-full md:w-[180px] h-10 bg-muted/50 border-border rounded-lg text-xs font-bold">
               <div className="flex items-center gap-2">
                 <Filter className="h-3.5 w-3.5 text-purple-500" />
-                <SelectValue placeholder="Purchase Type" />
+                <SelectValue
+                  placeholder={t("purchases.filters.purchase_type")}
+                />
               </div>
             </SelectTrigger>
             <SelectContent className="bg-card border-border">
-              <SelectItem value="all">All Types</SelectItem>
+              <SelectItem value="all">
+                {t("purchases.filters.all_types")}
+              </SelectItem>
               <SelectItem value="PROVIDER">
                 <div className="flex items-center gap-2">
                   <Store className="w-3 h-3 text-emerald-500" />
-                  Supplier Purchase
+                  {t("purchases.filters.supplier_purchase")}
                 </div>
               </SelectItem>
               <SelectItem value="WALKING_CUSTOMER">
                 <div className="flex items-center gap-2">
                   <User className="w-3 h-3 text-blue-500" />
-                  Walking Seller
+                  {t("purchases.filters.walking_seller")}
                 </div>
               </SelectItem>
             </SelectContent>
@@ -98,11 +104,15 @@ export function PurchaseFilters({
               <SelectTrigger className="w-full md:w-[200px] h-10 bg-muted/50 border-border rounded-lg text-xs font-bold">
                 <div className="flex items-center gap-2">
                   <Store className="h-3.5 w-3.5 text-emerald-500" />
-                  <SelectValue placeholder="All Providers" />
+                  <SelectValue
+                    placeholder={t("purchases.filters.all_providers")}
+                  />
                 </div>
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
-                <SelectItem value="all">All Providers</SelectItem>
+                <SelectItem value="all">
+                  {t("purchases.filters.all_providers")}
+                </SelectItem>
                 {providers?.map((p) => (
                   <SelectItem key={p.id} value={String(p.id)}>
                     {p.name}
@@ -151,7 +161,7 @@ export function PurchaseFilters({
               className="h-9 px-3 text-[10px] font-black uppercase tracking-tighter text-muted-foreground hover:text-red-500 transition-colors"
             >
               <X className="w-3.5 h-3.5 mr-1" />
-              Clear Filters ({activeFiltersCount})
+              {t("purchases.filters.clear")} ({activeFiltersCount})
             </Button>
           )}
         </div>

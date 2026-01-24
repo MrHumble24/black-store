@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { expenseQueries, type ExpenseCategory } from "@/entities/expense";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -46,6 +47,7 @@ const CATEGORIES: ExpenseCategory[] = [
 ];
 
 export default function ExpensesPage() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [startDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
@@ -57,7 +59,7 @@ export default function ExpensesPage() {
   const [description, setDescription] = useState("");
   const [receiptNo, setReceiptNo] = useState("");
   const [expenseDate, setExpenseDate] = useState(
-    format(new Date(), "yyyy-MM-dd")
+    format(new Date(), "yyyy-MM-dd"),
   );
 
   const { data: expenses, isLoading } = expenseQueries.useAll();
@@ -71,7 +73,7 @@ export default function ExpensesPage() {
       (e) =>
         e.description.toLowerCase().includes(search.toLowerCase()) ||
         e.category.toLowerCase().includes(search.toLowerCase()) ||
-        e.receiptNo?.toLowerCase().includes(search.toLowerCase())
+        e.receiptNo?.toLowerCase().includes(search.toLowerCase()),
     );
   }, [expenses, search]);
 
@@ -90,7 +92,7 @@ export default function ExpensesPage() {
           setIsAddOpen(false);
           resetForm();
         },
-      }
+      },
     );
   };
 
@@ -107,7 +109,7 @@ export default function ExpensesPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-rose-500" />
         <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
-          Loading Operating Expenses...
+          {t("expenses.loading")}
         </p>
       </div>
     );
@@ -119,10 +121,10 @@ export default function ExpensesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight italic uppercase">
-            Expenses Tracking
+            {t("expenses.title")}
           </h1>
           <p className="text-sm text-muted-foreground font-medium">
-            Manage your store operating costs and overheads
+            {t("expenses.description")}
           </p>
         </div>
         <Button
@@ -130,7 +132,7 @@ export default function ExpensesPage() {
           className="bg-rose-600 hover:bg-rose-700 text-white font-black px-6 rounded-xl shadow-xl shadow-rose-600/10 h-12 transition-all active:scale-95"
         >
           <Plus className="w-5 h-5 mr-2" />
-          RECORD EXPENSE
+          {t("expenses.record_expense")}
         </Button>
       </div>
 
@@ -142,7 +144,7 @@ export default function ExpensesPage() {
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Total This Month
+              {t("expenses.stats.total_month")}
             </CardDescription>
             <CardTitle className="text-3xl font-black text-foreground">
               ${summary?.total.toLocaleString() || "0"}
@@ -156,10 +158,14 @@ export default function ExpensesPage() {
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Top Category
+              {t("expenses.stats.top_category")}
             </CardDescription>
             <CardTitle className="text-xl font-black text-foreground uppercase italic">
-              {summary?.byCategory[0]?.category || "N/A"}
+              {summary?.byCategory[0]?.category
+                ? t(
+                    `expenses.create.categories.${summary.byCategory[0].category}`,
+                  )
+                : "N/A"}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -170,7 +176,7 @@ export default function ExpensesPage() {
           </div>
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Entries Recorded
+              {t("expenses.stats.entries")}
             </CardDescription>
             <CardTitle className="text-3xl font-black text-foreground">
               {expenses?.length || "0"}
@@ -185,16 +191,16 @@ export default function ExpensesPage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-sm font-black text-muted-foreground uppercase tracking-widest">
-                Expense Ledger
+                {t("expenses.ledger.title")}
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground font-medium">
-                Detailed log of all business payouts
+                {t("expenses.ledger.subtitle")}
               </CardDescription>
             </div>
             <div className="relative w-full md:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search description or receipt..."
+                placeholder={t("expenses.ledger.search_placeholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 h-10 bg-muted border-border rounded-lg text-sm font-medium"
@@ -207,19 +213,19 @@ export default function ExpensesPage() {
             <TableHeader className="bg-muted/50">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground font-black uppercase text-[10px] tracking-widest px-6 h-12">
-                  Date
+                  {t("expenses.table.date")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-black uppercase text-[10px] tracking-widest px-6 h-12">
-                  Category
+                  {t("expenses.table.category")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-black uppercase text-[10px] tracking-widest px-6 h-12">
-                  Description
+                  {t("expenses.table.description")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-black uppercase text-[10px] tracking-widest px-6 h-12">
-                  Receipt #
+                  {t("expenses.table.receipt")}
                 </TableHead>
                 <TableHead className="text-muted-foreground/60 font-black uppercase text-[10px] tracking-widest px-6 h-12 text-right">
-                  Amount
+                  {t("expenses.table.amount")}
                 </TableHead>
                 <TableHead className="w-12 px-6 h-12"></TableHead>
               </TableRow>
@@ -231,7 +237,7 @@ export default function ExpensesPage() {
                     colSpan={6}
                     className="h-32 text-center text-muted-foreground/60 italic text-sm"
                   >
-                    No expense records found
+                    {t("expenses.ledger.no_records")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -246,7 +252,8 @@ export default function ExpensesPage() {
                           {format(new Date(exp.expenseDate), "MMM d, yyyy")}
                         </span>
                         <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">
-                          Logged by {exp.createdBy?.name || "Member"}
+                          {t("expenses.table.logged_by")}{" "}
+                          {exp.createdBy?.name || "Member"}
                         </span>
                       </div>
                     </TableCell>
@@ -255,7 +262,7 @@ export default function ExpensesPage() {
                         variant="outline"
                         className="border-border bg-muted text-[10px] font-black uppercase tracking-widest px-2 py-0.5 h-6"
                       >
-                        {exp.category}
+                        {t(`expenses.create.categories.${exp.category}`)}
                       </Badge>
                     </TableCell>
                     <TableCell className="px-6 py-4">
@@ -299,10 +306,10 @@ export default function ExpensesPage() {
               <Receipt className="w-16 h-16" />
             </div>
             <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
-              Record Outgoing
+              {t("expenses.create.title")}
             </DialogTitle>
             <DialogDescription className="text-rose-100 font-medium text-xs">
-              Enter business expense details
+              {t("expenses.create.subtitle")}
             </DialogDescription>
           </div>
 
@@ -310,7 +317,7 @@ export default function ExpensesPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Category
+                  {t("expenses.create.category")}
                 </label>
                 <select
                   value={category}
@@ -319,14 +326,14 @@ export default function ExpensesPage() {
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {t(`expenses.create.categories.${c}`)}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
-                  Date
+                  {t("expenses.create.date")}
                 </label>
                 <Input
                   type="date"
@@ -339,7 +346,7 @@ export default function ExpensesPage() {
 
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
-                Amount ($)
+                {t("expenses.create.amount")}
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
@@ -355,10 +362,10 @@ export default function ExpensesPage() {
 
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
-                Payout Description
+                {t("expenses.create.description")}
               </label>
               <Textarea
-                placeholder="What was this for?"
+                placeholder={t("expenses.create.description_placeholder")}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="min-h-[100px] bg-muted border-border rounded-xl text-sm font-medium"
@@ -367,12 +374,12 @@ export default function ExpensesPage() {
 
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
-                Receipt / Reference #
+                {t("expenses.create.receipt")}
               </label>
               <div className="relative">
                 <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Optional receipt number"
+                  placeholder={t("expenses.create.receipt_placeholder")}
                   value={receiptNo}
                   onChange={(e) => setReceiptNo(e.target.value)}
                   className="pl-10 h-11 bg-muted border-border text-sm font-mono"
@@ -387,7 +394,7 @@ export default function ExpensesPage() {
               onClick={() => setIsAddOpen(false)}
               className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]"
             >
-              Cancel
+              {t("expenses.create.cancel")}
             </Button>
             <Button
               onClick={handleCreate}
@@ -397,7 +404,7 @@ export default function ExpensesPage() {
               {createMutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                "CONFIRM PAYOUT"
+                t("expenses.create.confirm")
               )}
             </Button>
           </DialogFooter>

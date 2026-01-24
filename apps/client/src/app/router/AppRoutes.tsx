@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/features/auth/ui/ProtectedRoute";
 import { DashboardLayout } from "@/widgets/layout/ui/DashboardLayout";
 import LoginPage from "@/pages/login/ui/LoginPage";
+import LaunchpadPage from "@/pages/launchpad/ui/LaunchpadPage";
 import DashboardPage from "@/pages/dashboard/ui/DashboardPage";
 import ProductsPage from "@/pages/products/ui/ProductsPage";
 import CreateProductPage from "@/pages/products/ui/CreateProductPage";
@@ -27,16 +28,7 @@ import ReportsPage from "@/pages/reports/ui/ReportsPage";
 import NotFoundPage from "@/pages/not-found/ui/NotFoundPage";
 import { BackupPage } from "@/pages/settings";
 import { EmergencyRestorePage } from "@/pages/settings/ui/EmergencyRestorePage";
-
-// Placeholder pages (to be implemented)
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">{title}</h1>
-      <p className="text-muted-foreground">This page is under construction.</p>
-    </div>
-  );
-}
+import UsersPage from "@/pages/settings/ui/UsersPage";
 
 export default function AppRoutes() {
   return (
@@ -53,7 +45,8 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<DashboardPage />} />
+        <Route path="/" element={<LaunchpadPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/pos" element={<PosPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/products/create" element={<CreateProductPage />} />
@@ -71,10 +64,7 @@ export default function AppRoutes() {
         <Route path="/returns/:id" element={<ReturnDetailsPage />} />
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/reports" element={<ReportsPage />} />
-        <Route
-          path="/settings/users"
-          element={<PlaceholderPage title="Users" />}
-        />
+        <Route path="/settings/users" element={<UsersPage />} />
         <Route path="/settings/warehouses" element={<WarehousesPage />} />
         <Route path="/settings/brands" element={<BrandsPage />} />
         <Route path="/settings/categories" element={<CategoriesPage />} />

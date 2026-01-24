@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import { Sidebar, SidebarContent } from "./Sidebar";
+import { TabBar } from "./TabBar";
 import { Toaster } from "@/shared/ui/sonner";
 import { Button } from "@/shared/ui/button";
 import {
@@ -40,7 +41,7 @@ export function DashboardLayout() {
       </header>
 
       {/* Desktop Sidebar */}
-      <div className="relative hidden lg:block h-screen shrink-0">
+      <div className="relative hidden lg:block h-screen shrink-0 overflow-y-auto no-scrollbar">
         <Sidebar isCollapsed={isSidebarCollapsed} />
         <Button
           variant="secondary"
@@ -56,12 +57,15 @@ export function DashboardLayout() {
         </Button>
       </div>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto relative">
-        <div className=" mx-auto p-4 md:p-6 lg:p-8 min-h-full">
-          <Outlet />
-        </div>
-      </main>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TabBar />
+        <main className="flex-1 overflow-auto relative bg-muted/20">
+          <div className=" mx-auto p-4 md:p-6 lg:p-8 min-h-full">
+            <Outlet />
+          </div>
+        </main>
+      </div>
 
       <Toaster position="top-right" richColors />
     </div>

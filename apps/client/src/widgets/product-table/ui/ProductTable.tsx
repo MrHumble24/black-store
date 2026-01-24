@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { productQueries } from "@/entities/product";
 import type { Product } from "@/entities/product";
 import type { ProductFilters } from "@/features/product-filters";
@@ -44,6 +45,7 @@ interface ProductTableProps {
 }
 
 const ExpandableDescription = ({ text }: { text: string }) => {
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const isLong = text.length > 50;
 
@@ -64,7 +66,7 @@ const ExpandableDescription = ({ text }: { text: string }) => {
           }}
           className="text-[10px] text-primary hover:underline w-fit mt-0.5 font-medium"
         >
-          {isExpanded ? "Show less" : "Read more"}
+          {isExpanded ? t("products.show_less") : t("products.read_more")}
         </button>
       )}
     </div>
@@ -72,6 +74,7 @@ const ExpandableDescription = ({ text }: { text: string }) => {
 };
 
 export function ProductTable({ filters }: ProductTableProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: products, isLoading } = productQueries.useAll();
   const deleteMutation = productQueries.useDelete();
@@ -91,7 +94,7 @@ export function ProductTable({ filters }: ProductTableProps) {
           p.name.toLowerCase().includes(searchLower) ||
           p.brand.name.toLowerCase().includes(searchLower) ||
           p.category.name.toLowerCase().includes(searchLower) ||
-          p.variants.some((v) => v.sku.toLowerCase().includes(searchLower))
+          p.variants.some((v) => v.sku.toLowerCase().includes(searchLower)),
       );
     }
 
@@ -128,7 +131,7 @@ export function ProductTable({ filters }: ProductTableProps) {
       const min = parseInt(filters.variantsMin) || 0;
       const max = parseInt(filters.variantsMax) || Infinity;
       result = result.filter(
-        (p) => p.variants.length >= min && p.variants.length <= max
+        (p) => p.variants.length >= min && p.variants.length <= max,
       );
     }
 
@@ -159,14 +162,6 @@ export function ProductTable({ filters }: ProductTableProps) {
     return result;
   }, [products, filters]);
 
-  const getMinMaxPrice = (product: Product) => {
-    const prices = product.variants.map((v) => Number(v.sellPrice));
-    return {
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-    };
-  };
-
   if (isLoading) {
     return (
       <Table>
@@ -187,11 +182,13 @@ export function ProductTable({ filters }: ProductTableProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
-        <h3 className="text-lg font-semibold">No products found</h3>
+        <h3 className="text-lg font-semibold">
+          {t("products.no_products_found")}
+        </h3>
         <p className="text-muted-foreground text-sm mt-1">
           {products?.length === 0
-            ? "Start by adding your first product."
-            : "Try adjusting your filters to find what you're looking for."}
+            ? t("products.start_adding")
+            : t("products.adjust_filters")}
         </p>
       </div>
     );
@@ -200,28 +197,39 @@ export function ProductTable({ filters }: ProductTableProps) {
   return (
     <div className="space-y-2">
       <div className="text-sm text-muted-foreground">
-        Showing {filteredAndSortedProducts.length} of {products?.length || 0}{" "}
-        products
+        {t("products.showing_of", {
+          count: filteredAndSortedProducts.length,
+          total: products?.length || 0,
+        })}
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="border-border bg-muted/50">
-              <TableHead className="font-semibold">Product</TableHead>
-              <TableHead className="font-semibold">Type</TableHead>
-              <TableHead className="font-semibold">Category</TableHead>
-              <TableHead className="font-semibold">Brand</TableHead>
-              <TableHead className="font-semibold">Variants</TableHead>
+              <TableHead className="font-semibold">
+                {t("products.table_product")}
+              </TableHead>
+              <TableHead className="font-semibold">
+                {t("products.table_type")}
+              </TableHead>
+              <TableHead className="font-semibold">
+                {t("products.table_category")}
+              </TableHead>
+              <TableHead className="font-semibold">
+                {t("products.table_brand")}
+              </TableHead>
+              <TableHead className="font-semibold">
+                {t("products.table_variants")}
+              </TableHead>
 
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedProducts.map((product) => {
-              const { min, max } = getMinMaxPrice(product);
               const totalStock = product.variants.reduce(
                 (acc, v) => acc + (v.totalStock || 0),
-                0
+                0,
               );
               const isLowStock = totalStock < product.minStock;
 
@@ -245,7 +253,9 @@ export function ProductTable({ filters }: ProductTableProps) {
                       }
                       className="font-mono text-[10px] uppercase"
                     >
-                      {product.type}
+                      {product.type === "SERIALIZED"
+                        ? t("products.type_serialized")
+                        : t("products.type_batch")}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -257,15 +267,16 @@ export function ProductTable({ filters }: ProductTableProps) {
                   <TableCell>
                     <div className="flex flex-wrap gap-1 items-center">
                       <Badge variant="outline" className="text-xs">
-                        {product.variants.length} variant
-                        {product.variants.length !== 1 ? "s" : ""}
+                        {t("products.badge_variants", {
+                          count: product.variants.length,
+                        })}
                       </Badge>
                       {isLowStock && (
                         <Badge
                           variant="destructive"
                           className="text-[10px] px-1.5"
                         >
-                          Low Stock
+                          {t("products.low_stock")}
                         </Badge>
                       )}
                     </div>
@@ -292,7 +303,7 @@ export function ProductTable({ filters }: ProductTableProps) {
                           }
                         >
                           <Edit className="h-4 w-4" />
-                          Edit
+                          {t("common.edit")}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="gap-2"
@@ -301,7 +312,7 @@ export function ProductTable({ filters }: ProductTableProps) {
                           }
                         >
                           <Eye className="h-4 w-4" />
-                          View Details
+                          {t("products.view_details")}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -309,7 +320,7 @@ export function ProductTable({ filters }: ProductTableProps) {
                           onClick={() => setProductToDelete(product)}
                         >
                           <Trash2 className="h-4 w-4" />
-                          Delete
+                          {t("common.delete")}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -328,25 +339,21 @@ export function ProductTable({ filters }: ProductTableProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogTitle>{t("products.delete_product")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <span className="font-semibold text-foreground">
-                "{productToDelete?.name}"
-              </span>
-              ? This action cannot be undone.
+              {t("products.delete_confirm", { name: productToDelete?.name })}
               {productToDelete && productToDelete.variants.length > 0 && (
                 <span className="block mt-2 text-amber-600 dark:text-amber-400">
-                  ⚠️ This product has {productToDelete.variants.length} variant
-                  {productToDelete.variants.length !== 1 ? "s" : ""} that will
-                  also be deactivated.
+                  {t("products.delete_warning", {
+                    count: productToDelete.variants.length,
+                  })}
                 </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
@@ -362,10 +369,10 @@ export function ProductTable({ filters }: ProductTableProps) {
               {deleteMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
+                  {t("products.deleting")}
                 </>
               ) : (
-                "Delete"
+                t("common.delete")
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { reportQueries } from "@/entities/report";
 import {
   Card,
@@ -22,16 +23,17 @@ import { format, startOfMonth, endOfMonth } from "date-fns";
 import { Badge } from "@/shared/ui/badge";
 
 export default function ReportsPage() {
+  const { t } = useTranslation();
   const [startDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
 
   const { data: sales, isLoading: salesLoading } = reportQueries.useSales(
     startDate,
-    endDate
+    endDate,
   );
   const { data: profit, isLoading: profitLoading } = reportQueries.useProfit(
     startDate,
-    endDate
+    endDate,
   );
   const { data: inventory, isLoading: inventoryLoading } =
     reportQueries.useInventoryValue();
@@ -41,7 +43,7 @@ export default function ReportsPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-indigo-500" />
         <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
-          Generating Analytics...
+          {t("reports.loading")}
         </p>
       </div>
     );
@@ -53,10 +55,10 @@ export default function ReportsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight italic uppercase">
-            Business Intelligence
+            {t("reports.title")}
           </h1>
           <p className="text-sm text-muted-foreground font-medium">
-            Monitor your store performance and financial health
+            {t("reports.description")}
           </p>
         </div>
         <div className="flex items-center gap-2 bg-card p-1 rounded-xl border border-border">
@@ -83,21 +85,21 @@ export default function ReportsPage() {
             className="px-6 font-bold uppercase tracking-widest text-[10px]"
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-2" />
-            Sales Insights
+            {t("reports.tabs.sales")}
           </TabsTrigger>
           <TabsTrigger
             value="profit"
             className="px-6 font-bold uppercase tracking-widest text-[10px]"
           >
             <TrendingUp className="w-3.5 h-3.5 mr-2" />
-            Profit & Loss
+            {t("reports.tabs.profit")}
           </TabsTrigger>
           <TabsTrigger
             value="inventory"
             className="px-6 font-bold uppercase tracking-widest text-[10px]"
           >
             <Package className="w-3.5 h-3.5 mr-2" />
-            Inventory Value
+            {t("reports.tabs.inventory")}
           </TabsTrigger>
         </TabsList>
 
@@ -110,7 +112,7 @@ export default function ReportsPage() {
               </div>
               <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Total Revenue
+                  {t("reports.sales.total_revenue")}
                 </CardDescription>
                 <CardTitle className="text-3xl font-black text-foreground italic tracking-tighter">
                   ${sales?.totalRevenue.toLocaleString()}
@@ -123,7 +125,7 @@ export default function ReportsPage() {
               </div>
               <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Order Count
+                  {t("reports.sales.order_count")}
                 </CardDescription>
                 <CardTitle className="text-3xl font-black text-foreground italic tracking-tighter">
                   {sales?.totalOrders}
@@ -136,7 +138,7 @@ export default function ReportsPage() {
               </div>
               <CardHeader className="pb-2">
                 <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  Avg. Order Value
+                  {t("reports.sales.avg_order_value")}
                 </CardDescription>
                 <CardTitle className="text-3xl font-black text-foreground italic tracking-tighter">
                   ${sales?.averageOrderValue.toFixed(2)}
@@ -150,7 +152,7 @@ export default function ReportsPage() {
             <Card className="bg-card border-border shadow-2xl">
               <CardHeader className="border-b border-border bg-muted/10">
                 <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  Top Moving Products
+                  {t("reports.sales.top_products")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -191,7 +193,7 @@ export default function ReportsPage() {
             <Card className="bg-card border-border shadow-2xl">
               <CardHeader className="border-b border-border bg-muted/10">
                 <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  High Performers
+                  {t("reports.sales.high_performers")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -210,7 +212,7 @@ export default function ReportsPage() {
                             {s.name}
                           </p>
                           <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
-                            {s.orderCount} Orders Processed
+                            {s.orderCount} {t("reports.sales.orders_processed")}
                           </p>
                         </div>
                       </div>
@@ -233,7 +235,7 @@ export default function ReportsPage() {
             <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card className="bg-card border-border p-6">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
-                  Total Revenue
+                  {t("reports.profit.total_revenue")}
                 </p>
                 <p className="text-2xl font-black text-foreground italic">
                   ${profit?.revenue.toLocaleString()}
@@ -241,7 +243,7 @@ export default function ReportsPage() {
               </Card>
               <Card className="bg-card border-border p-6">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
-                  Cost of Goods (COGS)
+                  {t("reports.profit.cogs")}
                 </p>
                 <p className="text-2xl font-black text-red-500 italic">
                   -${profit?.cogs.toLocaleString()}
@@ -249,7 +251,7 @@ export default function ReportsPage() {
               </Card>
               <Card className="bg-card border-border p-6">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
-                  Operating Expenses
+                  {t("reports.profit.operating_expenses")}
                 </p>
                 <p className="text-2xl font-black text-amber-500 italic">
                   -${profit?.expenses.toLocaleString()}
@@ -257,7 +259,7 @@ export default function ReportsPage() {
               </Card>
               <Card className="bg-emerald-600/5 border-border border-l-4 border-l-emerald-600 p-6">
                 <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">
-                  Net Realized Profit
+                  {t("reports.profit.net_profit")}
                 </p>
                 <p className="text-2xl font-black text-emerald-500 italic">
                   ${profit?.netProfit.toLocaleString()}
@@ -269,14 +271,14 @@ export default function ReportsPage() {
               <Card className="bg-card border-border overflow-hidden">
                 <CardHeader className="bg-indigo-600/10 p-6">
                   <CardTitle className="text-xs font-black uppercase text-indigo-400 tracking-widest">
-                    Efficiency Metrics
+                    {t("reports.profit.efficiency")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-6">
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
                       <span className="text-muted-foreground">
-                        Gross Margin
+                        {t("reports.profit.gross_margin")}
                       </span>
                       <span className="text-foreground">
                         {profit?.grossMargin.toFixed(1)}%
@@ -291,7 +293,9 @@ export default function ReportsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs font-black uppercase tracking-widest">
-                      <span className="text-muted-foreground">Net Margin</span>
+                      <span className="text-muted-foreground">
+                        {t("reports.profit.net_margin")}
+                      </span>
                       <span className="text-foreground">
                         {profit?.netMargin.toFixed(1)}%
                       </span>
@@ -309,16 +313,16 @@ export default function ReportsPage() {
                 <div className="flex items-center gap-2 text-rose-500">
                   <TrendingDown className="w-4 h-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">
-                    Expense Impact
+                    {t("reports.profit.expense_impact")}
                   </span>
                 </div>
                 <p className="text-foreground font-bold text-sm">
-                  Overheads consume{" "}
-                  {(
-                    ((profit?.expenses || 0) / (profit?.revenue || 1)) *
-                    100
-                  ).toFixed(1)}
-                  % of your gross intake.
+                  {t("reports.profit.expense_impact_desc", {
+                    percent: (
+                      ((profit?.expenses || 0) / (profit?.revenue || 1)) *
+                      100
+                    ).toFixed(1),
+                  })}
                 </p>
               </Card>
             </div>
@@ -334,13 +338,14 @@ export default function ReportsPage() {
               </div>
               <div>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                  Total Sku Value
+                  {t("reports.inventory.total_sku_value")}
                 </p>
                 <p className="text-3xl font-black text-foreground italic tracking-tighter">
                   ${inventory?.totalValue.toLocaleString()}
                 </p>
                 <p className="text-xs text-muted-foreground/60 font-bold uppercase mt-1 italic">
-                  {inventory?.totalItems} Units Available
+                  {inventory?.totalItems}{" "}
+                  {t("reports.inventory.units_available")}
                 </p>
               </div>
             </Card>
@@ -350,10 +355,11 @@ export default function ReportsPage() {
               </div>
               <div>
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-                  Active Locations
+                  {t("reports.inventory.active_locations")}
                 </p>
                 <p className="text-3xl font-black text-foreground italic tracking-tighter">
-                  {inventory?.byWarehouse.length} Warehouses
+                  {inventory?.byWarehouse.length}{" "}
+                  {t("reports.inventory.warehouses")}
                 </p>
               </div>
             </Card>
@@ -363,7 +369,7 @@ export default function ReportsPage() {
             <Card className="bg-card border-border shadow-2xl">
               <CardHeader className="bg-muted/10 border-b border-border">
                 <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">
-                  Warehouse Distribution
+                  {t("reports.inventory.warehouse_dist")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -379,7 +385,7 @@ export default function ReportsPage() {
                         </p>
                         <div className="flex items-center gap-2">
                           <Badge className="bg-muted border-border text-[9px] font-black h-5 uppercase">
-                            {w.items} items
+                            {w.items} {t("reports.inventory.items")}
                           </Badge>
                         </div>
                       </div>
@@ -392,7 +398,7 @@ export default function ReportsPage() {
                             (Number(w.value) / (inventory?.totalValue || 1)) *
                             100
                           ).toFixed(1)}
-                          % Weight
+                          % {t("reports.inventory.weight")}
                         </p>
                       </div>
                     </div>
@@ -404,7 +410,7 @@ export default function ReportsPage() {
             <Card className="bg-card border-border shadow-2xl">
               <CardHeader className="bg-muted/10 border-b border-border">
                 <CardTitle className="text-xs font-black uppercase text-muted-foreground tracking-widest">
-                  Value By Category
+                  {t("reports.inventory.value_by_category")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">

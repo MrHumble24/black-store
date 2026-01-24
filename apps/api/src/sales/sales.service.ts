@@ -52,15 +52,17 @@ export class SalesService {
           },
         });
 
+        let costPrice = 0;
         if (variant.product.type === 'SERIALIZED') {
           if (!item.inventoryItemId)
             throw new BadRequestException(
               'inventoryItemId required for serialized',
             );
-          await tx.inventoryItem.update({
+          const inventoryItem = await tx.inventoryItem.update({
             where: { id: item.inventoryItemId },
             data: { status: 'SOLD', soldAtItemId: orderItem.id },
           });
+          costPrice = Number(inventoryItem.costPrice);
         } else {
           const inv = await tx.inventoryItem.findFirst({
             where: {
@@ -70,6 +72,8 @@ export class SalesService {
             },
           });
           if (!inv) throw new BadRequestException('Insufficient stock');
+          costPrice = Number(inv.costPrice);
+
           if (inv.quantity === item.quantity) {
             await tx.inventoryItem.update({
               where: { id: inv.id },
@@ -82,6 +86,11 @@ export class SalesService {
             });
           }
         }
+
+        await tx.orderItem.update({
+          where: { id: orderItem.id },
+          data: { costPrice: costPrice * item.quantity },
+        });
 
         await tx.stockMovement.create({
           data: {
@@ -99,8 +108,11 @@ export class SalesService {
           items: {
             include: {
               variant: {
-                include: { product: true },
+                include: {
+                  product: true,
+                },
               },
+              inventoryItem: true,
             },
           },
         },
@@ -130,6 +142,26 @@ export class SalesService {
                 },
               },
             },
+            inventoryItem: true,
+            returns: {
+              select: {
+                id: true,
+                status: true,
+                reason: true,
+                refundAmount: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+          },
+        },
+        returns: {
+          select: {
+            id: true,
+            orderItemId: true,
+            status: true,
+            reason: true,
+            refundAmount: true,
           },
         },
       },
@@ -137,7 +169,7 @@ export class SalesService {
     });
   }
 
-  findOne(id: number) {
+  async findOne(id: number) {
     return this.prisma.sale.findUnique({
       where: { id },
       include: {
@@ -145,9 +177,100 @@ export class SalesService {
           include: {
             variant: { include: { product: true } },
             inventoryItem: true,
+            returns: {
+              select: {
+                id: true,
+                status: true,
+                reason: true,
+                refundAmount: true,
+                notes: true,
+                createdAt: true,
+                updatedAt: true,
+                processedBy: { select: { id: true, name: true } },
+              },
+            },
+          },
+        },
+        returns: {
+          select: {
+            id: true,
+            orderItemId: true,
+            status: true,
+            reason: true,
+            refundAmount: true,
           },
         },
       },
+    });
+  }
+
+  async remove(id: number, userId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.findUnique({
+        where: { id },
+        include: {
+          items: {
+            include: {
+              variant: { include: { product: true } },
+              inventoryItem: true,
+            },
+          },
+        },
+      });
+
+      if (!sale) throw new BadRequestException('Sale not found');
+
+      for (const item of sale.items) {
+        if (item.variant.product.type === 'SERIALIZED') {
+          if (item.inventoryItem) {
+            await tx.inventoryItem.update({
+              where: { id: item.inventoryItem.id },
+              data: {
+                status: 'AVAILABLE',
+                soldAtItemId: null,
+              },
+            });
+          }
+        } else {
+          // For batch items, we need to find the inventory item that was used
+          // Since we don't store which specific batch items were sold in a linked way (other than soldAtItemId which might be shared)
+          // We look for any available record or create a new one/update existing for that variant/warehouse
+          const inv = await tx.inventoryItem.findFirst({
+            where: {
+              variantId: item.variantId,
+              status: 'AVAILABLE',
+            },
+          });
+
+          if (inv) {
+            await tx.inventoryItem.update({
+              where: { id: inv.id },
+              data: { quantity: { increment: item.quantity } },
+            });
+          } else {
+            // This case shouldn't happen often if we always have at least one record,
+            // but for safety, we might need a warehouse ID.
+            // Let's assume there's at least one record or use a default warehouse if we had it.
+            // In this specific schema, it's better to find any matching record.
+            throw new BadRequestException(
+              'Matching inventory record not found for restocking',
+            );
+          }
+        }
+
+        // Record restock movement
+        await tx.stockMovement.create({
+          data: {
+            type: 'RETURN_RESTOCK',
+            productId: item.variant.productId,
+            quantity: item.quantity,
+            userId,
+            notes: `Voided Sale ${sale.invoiceNo}`,
+          },
+        });
+      }
+
+      return tx.sale.delete({ where: { id } });
     });
   }
 }

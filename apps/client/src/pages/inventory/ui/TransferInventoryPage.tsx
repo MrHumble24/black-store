@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { inventoryQueries } from "@/entities/inventory";
 import { warehouseQueries } from "@/entities/warehouse";
 import { Button } from "@/shared/ui/button";
@@ -39,6 +40,7 @@ import { BarcodeScanner } from "@/shared/ui/barcode-scanner";
 import { toast } from "sonner";
 
 export default function TransferInventoryPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const transferMutation = inventoryQueries.useTransfer();
 
@@ -90,14 +92,14 @@ export default function TransferInventoryPage() {
   }, [sourceInventory]);
 
   const selectedVariant = availableVariants.find(
-    (v) => String(v.id) === selectedVariantId
+    (v) => String(v.id) === selectedVariantId,
   );
 
   const handleTransfer = () => {
     if (!fromWarehouseId || !toWarehouseId || !selectedVariantId || !quantity)
       return;
     if (fromWarehouseId === toWarehouseId) {
-      toast.error("Source and destination warehouses must be different");
+      toast.error(t("inventory.transfer.error_same_warehouse"));
       return;
     }
 
@@ -114,44 +116,45 @@ export default function TransferInventoryPage() {
       },
       {
         onSuccess: () => navigate("/inventory"),
-      }
+      },
     );
   };
 
   const handleBarcodeScan = (code: string) => {
     // Try to match SKU first
     const variant = availableVariants.find(
-      (v) => v.sku.toLowerCase() === code.toLowerCase()
+      (v) => v.sku.toLowerCase() === code.toLowerCase(),
     );
 
     if (variant) {
       setSelectedVariantId(String(variant.id));
-      toast.success(`Matched Product: ${variant.label}`);
+      toast.success(
+        t("inventory.create.toasts.matched", { label: variant.label }),
+      );
       return;
     }
 
     // Try to match Serial Number if it's already in the source warehouse
     const itemWithSN = sourceInventory?.find(
-      (item: any) => item.serialNumber?.toLowerCase() === code.toLowerCase()
+      (item: any) => item.serialNumber?.toLowerCase() === code.toLowerCase(),
     );
 
     if (itemWithSN) {
       setSelectedVariantId(String(itemWithSN.variantId));
       setSelectedInventoryItemId(String(itemWithSN.id));
       setQuantity("1");
-      toast.success(`Matched Serial Number: ${code}`);
+      toast.success(t("inventory.create.toasts.sn_captured") + `: ${code}`);
     } else {
-      toast.error(
-        "No matching Product or Serial Number found in source warehouse"
-      );
+      toast.error(t("inventory.transfer.error_no_match"));
     }
   };
 
   const fromWarehouseName =
-    warehouses?.find((w) => String(w.id) === fromWarehouseId)?.name || "Source";
+    warehouses?.find((w) => String(w.id) === fromWarehouseId)?.name ||
+    t("inventory.transfer.select_source");
   const toWarehouseName =
     warehouses?.find((w) => String(w.id) === toWarehouseId)?.name ||
-    "Destination";
+    t("inventory.transfer.select_target");
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
@@ -168,10 +171,10 @@ export default function TransferInventoryPage() {
           </Button>
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-              Transfer Inventory
+              {t("inventory.transfer.title")}
             </h1>
             <p className="text-sm text-muted-foreground font-medium">
-              Relocate stock between warehouses with real-time tracking
+              {t("inventory.transfer.description")}
             </p>
           </div>
         </div>
@@ -182,7 +185,7 @@ export default function TransferInventoryPage() {
           className="rounded-lg h-9 border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <History className="w-4 h-4 mr-2 text-muted-foreground" />
-          Movement Logs
+          {t("inventory.transfer.logs")}
         </Button>
       </div>
 
@@ -203,24 +206,26 @@ export default function TransferInventoryPage() {
                       "w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(0,0,0,0.3)]",
                       fromWarehouseId
                         ? "bg-blue-600 text-white scale-110 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
-                        : "bg-muted text-muted-foreground border border-border"
+                        : "bg-muted text-muted-foreground border border-border",
                     )}
                   >
                     <Warehouse className="w-10 h-10" />
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                      Origin
+                      {t("inventory.transfer.origin")}
                     </p>
                     <p
                       className={cn(
                         "font-bold text-sm truncate max-w-[140px] transition-colors",
                         fromWarehouseId
                           ? "text-foreground"
-                          : "text-muted-foreground/40"
+                          : "text-muted-foreground/40",
                       )}
                     >
-                      {fromWarehouseId ? fromWarehouseName : "Select Source"}
+                      {fromWarehouseId
+                        ? fromWarehouseName
+                        : t("inventory.transfer.select_source")}
                     </p>
                   </div>
                 </div>
@@ -238,24 +243,26 @@ export default function TransferInventoryPage() {
                       "w-20 h-20 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-[0_0_20px_rgba(0,0,0,0.3)]",
                       toWarehouseId
                         ? "bg-indigo-600 text-white scale-110 shadow-[0_0_30px_rgba(79,70,229,0.3)]"
-                        : "bg-muted text-muted-foreground border border-border"
+                        : "bg-muted text-muted-foreground border border-border",
                     )}
                   >
                     <Warehouse className="w-10 h-10" />
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1">
-                      Target
+                      {t("inventory.transfer.target")}
                     </p>
                     <p
                       className={cn(
                         "font-bold text-sm truncate max-w-[140px] transition-colors",
                         toWarehouseId
                           ? "text-foreground"
-                          : "text-muted-foreground/40"
+                          : "text-muted-foreground/40",
                       )}
                     >
-                      {toWarehouseId ? toWarehouseName : "Select Target"}
+                      {toWarehouseId
+                        ? toWarehouseName
+                        : t("inventory.transfer.select_target")}
                     </p>
                   </div>
                 </div>
@@ -266,7 +273,7 @@ export default function TransferInventoryPage() {
                 <div className="space-y-4">
                   <div className="p-6 rounded-2xl bg-muted/50 border border-border group focus-within:border-blue-500/50 transition-all">
                     <Label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-4 block">
-                      Transfer From
+                      {t("inventory.transfer.from")}
                     </Label>
                     <Select
                       value={fromWarehouseId}
@@ -276,7 +283,11 @@ export default function TransferInventoryPage() {
                       }}
                     >
                       <SelectTrigger className="bg-muted border-border h-14 text-foreground rounded-xl focus:ring-blue-500/20">
-                        <SelectValue placeholder="Identify source warehouse" />
+                        <SelectValue
+                          placeholder={t(
+                            "inventory.transfer.source_placeholder",
+                          )}
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {warehouses?.map((w) => (
@@ -297,14 +308,18 @@ export default function TransferInventoryPage() {
                 <div className="space-y-4">
                   <div className="p-6 rounded-2xl bg-muted/50 border border-border group focus-within:border-indigo-500/50 transition-all">
                     <Label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-4 block">
-                      Transfer To
+                      {t("inventory.transfer.to")}
                     </Label>
                     <Select
                       value={toWarehouseId}
                       onValueChange={setToWarehouseId}
                     >
                       <SelectTrigger className="bg-muted border-border h-14 text-foreground rounded-xl focus:ring-indigo-500/20">
-                        <SelectValue placeholder="Identify target location" />
+                        <SelectValue
+                          placeholder={t(
+                            "inventory.transfer.target_placeholder",
+                          )}
+                        />
                       </SelectTrigger>
                       <SelectContent className="bg-card border-border text-foreground">
                         {warehouses?.map((w) => (
@@ -328,10 +343,12 @@ export default function TransferInventoryPage() {
                   <div>
                     <h3 className="text-xl font-bold text-foreground flex items-center gap-3">
                       <Package className="w-6 h-6 text-muted-foreground" />
-                      Manifest Details
+                      {t("inventory.transfer.manifest_title")}
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1 font-medium">
-                      Select available inventory from {fromWarehouseName}
+                      {t("inventory.transfer.manifest_desc", {
+                        warehouse: fromWarehouseName,
+                      })}
                     </p>
                   </div>
                   <Button
@@ -340,7 +357,7 @@ export default function TransferInventoryPage() {
                     className="bg-foreground hover:bg-muted text-background rounded-xl h-12 px-8 font-bold shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all active:scale-95 disabled:opacity-20"
                   >
                     <ScanBarcode className="w-5 h-5 mr-3" />
-                    Interactive Scan
+                    {t("inventory.transfer.interactive_scan")}
                   </Button>
                 </div>
 
@@ -348,7 +365,7 @@ export default function TransferInventoryPage() {
                   {/* Variant Selection Popover */}
                   <div className="lg:col-span-7 space-y-3">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
-                      Product Variant
+                      {t("inventory.create.product_variant")}
                     </Label>
                     <Popover
                       open={isVariantOpen}
@@ -370,8 +387,9 @@ export default function TransferInventoryPage() {
                                   {selectedVariant.label}
                                 </p>
                                 <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">
-                                  {selectedVariant.totalInWarehouse} Units
-                                  Available
+                                  {t("inventory.transfer.units_available", {
+                                    count: selectedVariant.totalInWarehouse,
+                                  })}
                                 </p>
                               </div>
                             </div>
@@ -379,12 +397,12 @@ export default function TransferInventoryPage() {
                             <div className="flex items-center gap-4">
                               <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
                               <span className="text-muted-foreground text-sm font-medium italic">
-                                Interrogating source inventory...
+                                {t("inventory.transfer.interrogating")}
                               </span>
                             </div>
                           ) : (
                             <span className="text-muted-foreground/40 font-bold">
-                              Select a variant to relocate...
+                              {t("inventory.transfer.select_variant")}
                             </span>
                           )}
                           <ChevronsUpDown className="w-5 h-5 text-muted-foreground/20" />
@@ -394,7 +412,9 @@ export default function TransferInventoryPage() {
                         <Command className="bg-transparent">
                           <div className="p-4 border-b border-border">
                             <CommandInput
-                              placeholder="Type SKU or Product Name..."
+                              placeholder={t(
+                                "inventory.transfer.search_placeholder",
+                              )}
                               className="h-12 border-none bg-muted rounded-xl text-foreground placeholder:text-muted-foreground/40"
                             />
                           </div>
@@ -406,7 +426,7 @@ export default function TransferInventoryPage() {
                                   <Loader2 className="w-12 h-12 animate-spin text-blue-500 relative z-10" />
                                 </div>
                                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                                  Reading Stock Data
+                                  {t("inventory.transfer.reading_stock")}
                                 </p>
                               </div>
                             ) : (
@@ -416,11 +436,10 @@ export default function TransferInventoryPage() {
                                     <Package className="w-8 h-8 text-muted-foreground/40" />
                                   </div>
                                   <p className="font-black text-foreground text-lg">
-                                    Warehouse Empty
+                                    {t("inventory.transfer.empty_title")}
                                   </p>
                                   <p className="text-xs text-muted-foreground font-medium max-w-[200px] mx-auto mt-2">
-                                    This location has no available inventory to
-                                    transfer.
+                                    {t("inventory.transfer.empty_desc")}
                                   </p>
                                 </CommandEmpty>
                                 <CommandGroup>
@@ -430,7 +449,7 @@ export default function TransferInventoryPage() {
                                       value={variant.label}
                                       onSelect={() => {
                                         setSelectedVariantId(
-                                          String(variant.id)
+                                          String(variant.id),
                                         );
                                         setSelectedInventoryItemId("");
                                         setIsVariantOpen(false);
@@ -472,7 +491,7 @@ export default function TransferInventoryPage() {
                   {/* Quantity Input */}
                   <div className="lg:col-span-3 space-y-3">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
-                      Amount
+                      {t("inventory.transfer.amount")}
                     </Label>
                     <div className="relative group">
                       <Input
@@ -486,7 +505,7 @@ export default function TransferInventoryPage() {
                       />
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                         <p className="text-[8px] font-black text-muted-foreground/40 uppercase tracking-widest">
-                          Units
+                          {t("inventory.transfer.units")}
                         </p>
                       </div>
                     </div>
@@ -495,21 +514,21 @@ export default function TransferInventoryPage() {
                   {/* Product Type Indicator */}
                   <div className="lg:col-span-2 space-y-3">
                     <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter">
-                      Type
+                      {t("inventory.transfer.type")}
                     </Label>
                     <div className="h-16 flex items-center justify-center rounded-2xl bg-muted/30 border border-border border-dashed">
                       <div className="flex flex-col items-center">
                         {selectedVariant?.productType === "SERIALIZED" ? (
                           <>
                             <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest">
-                              Serial
+                              {t("inventory.transfer.serial")}
                             </span>
                             <div className="w-2.5 h-2.5 rounded-full mt-1 bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.5)] animate-pulse" />
                           </>
                         ) : (
                           <>
                             <span className="text-[9px] font-black text-green-400 uppercase tracking-widest">
-                              Bulk
+                              {t("inventory.transfer.bulk")}
                             </span>
                             <div className="w-2.5 h-2.5 rounded-full mt-1 bg-green-500 shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
                           </>
@@ -531,11 +550,10 @@ export default function TransferInventoryPage() {
                       </div>
                       <div>
                         <p className="text-sm font-black text-foreground uppercase tracking-tight">
-                          Item Serialization Required
+                          {t("inventory.transfer.serialization_required")}
                         </p>
                         <p className="text-xs text-muted-foreground font-medium">
-                          Select the specific unit identifier for this
-                          relocation.
+                          {t("inventory.transfer.serialization_desc")}
                         </p>
                       </div>
                     </div>
@@ -544,7 +562,9 @@ export default function TransferInventoryPage() {
                       onValueChange={setSelectedInventoryItemId}
                     >
                       <SelectTrigger className="bg-muted border-border h-14 rounded-xl text-foreground focus:ring-purple-500/20 focus:border-purple-500/40">
-                        <SelectValue placeholder="Identify Specific Serial Number" />
+                        <SelectValue
+                          placeholder={t("inventory.transfer.identify_sn")}
+                        />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl bg-card border-border text-foreground">
                         {selectedVariant.items.map((item: any) => (
@@ -560,7 +580,12 @@ export default function TransferInventoryPage() {
                               <div className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                                 <span className="text-muted-foreground/40 text-[10px] font-black uppercase tracking-widest">
-                                  {item.status}
+                                  {
+                                    t(
+                                      `inventory.filters.${item.status.toLowerCase()}`,
+                                      item.status,
+                                    ) as string
+                                  }
                                 </span>
                               </div>
                             </div>
@@ -574,10 +599,10 @@ export default function TransferInventoryPage() {
                 {/* Remarks Field */}
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-tighter px-1">
-                    Internal Manifest Remarks
+                    {t("inventory.transfer.remarks")}
                   </Label>
                   <Input
-                    placeholder="Log the purpose of this relocation..."
+                    placeholder={t("inventory.transfer.remarks_placeholder")}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     className="h-14 border-border bg-muted/30 rounded-2xl text-foreground placeholder:text-muted-foreground/20 focus:ring-foreground/5"
@@ -592,7 +617,7 @@ export default function TransferInventoryPage() {
                   onClick={() => navigate(-1)}
                   className="h-16 flex-1 rounded-2xl font-black text-muted-foreground hover:text-foreground hover:bg-muted"
                 >
-                  Discard
+                  {t("inventory.transfer.discard")}
                 </Button>
                 <Button
                   onClick={handleTransfer}
@@ -611,7 +636,7 @@ export default function TransferInventoryPage() {
                   ) : (
                     <div className="flex items-center justify-center gap-3">
                       <MoveHorizontal className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-                      Commit Transfer
+                      {t("inventory.transfer.commit")}
                     </div>
                   )}
                 </Button>

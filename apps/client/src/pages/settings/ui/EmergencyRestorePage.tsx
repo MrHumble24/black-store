@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
@@ -13,6 +14,7 @@ import api from "@/shared/api/api";
 import { RotateCcw, ShieldAlert } from "lucide-react";
 
 export function EmergencyRestorePage() {
+  const { t } = useTranslation();
   const [key, setKey] = useState("");
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -21,16 +23,12 @@ export function EmergencyRestorePage() {
     if (!file) return;
 
     if (!key) {
-      toast.error("Please enter the restoration key first.");
+      toast.error(t("settings.emergency.error_key_missing"));
       event.target.value = "";
       return;
     }
 
-    if (
-      !window.confirm(
-        "CRITICAL WARNING: This will OVERWRITE your entire database. All current data will be lost. Are you absolutely sure?"
-      )
-    ) {
+    if (!window.confirm(t("settings.emergency.confirm_critical"))) {
       event.target.value = "";
       return;
     }
@@ -46,15 +44,13 @@ export function EmergencyRestorePage() {
           "x-backup-restore-key": key,
         },
       });
-      toast.success(
-        "System successfully restored! You can now log in with credentials from the backup."
-      );
+      toast.success(t("settings.emergency.success"));
     } catch (error: any) {
       console.error(error);
       if (error.response?.status === 403) {
-        toast.error("Invalid restore key. Access denied.");
+        toast.error(t("settings.emergency.error_invalid_key"));
       } else {
-        toast.error("Failed to restore system.");
+        toast.error(t("settings.emergency.error_generic"));
       }
     } finally {
       setIsRestoring(false);
@@ -68,26 +64,27 @@ export function EmergencyRestorePage() {
         <CardHeader>
           <div className="flex items-center gap-2 text-red-500">
             <ShieldAlert className="h-8 w-8" />
-            <CardTitle className="text-2xl">Emergency System Restore</CardTitle>
+            <CardTitle className="text-2xl">
+              {t("settings.emergency.title")}
+            </CardTitle>
           </div>
           <CardDescription>
-            Use this page to restore the system database from a backup file if
-            you cannot log in.
+            {t("settings.emergency.description")}
             <br />
             <span className="font-bold text-red-500 mt-2 block">
-              WARNING: This is a destructive action.
+              {t("settings.emergency.warning")}
             </span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="restore-key" className="text-sm font-medium">
-              Restoration Key
+              {t("settings.emergency.key_label")}
             </label>
             <Input
               id="restore-key"
               type="password"
-              placeholder="Enter secure restore key..."
+              placeholder={t("settings.emergency.key_placeholder")}
               value={key}
               onChange={(e) => setKey(e.target.value)}
             />
@@ -101,11 +98,11 @@ export function EmergencyRestorePage() {
               disabled={isRestoring || !key}
             >
               {isRestoring ? (
-                "Restoring System..."
+                t("settings.emergency.restoring")
               ) : (
                 <>
                   <RotateCcw className="h-4 w-4" />
-                  Upload Backup & Restore
+                  {t("settings.emergency.restore_btn")}
                 </>
               )}
             </Button>

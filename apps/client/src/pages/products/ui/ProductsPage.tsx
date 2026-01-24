@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { brandQueries } from "@/entities/brand";
 import { categoryQueries } from "@/entities/category";
 import { productQueries } from "@/entities/product";
@@ -28,6 +29,7 @@ import {
 } from "lucide-react";
 
 export default function ProductsPage() {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState<ProductFilters>(defaultFilters);
 
   const { data: products } = productQueries.useAll();
@@ -42,7 +44,7 @@ export default function ProductsPage() {
     products?.filter((p) => {
       const totalStock = p.variants.reduce(
         (acc, v) => acc + (v.totalStock || 0),
-        0
+        0,
       );
       return totalStock < p.minStock;
     }).length || 0;
@@ -51,17 +53,17 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground">
-            Manage your product catalog, variants, and stock levels.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("products.title")}
+          </h1>
+          <p className="text-muted-foreground">{t("products.description")}</p>
         </div>
         <div className="flex items-center gap-2">
           <ExportProductsButton products={products || []} />
           <Button asChild className="gap-2">
             <Link to="/products/create">
               <Plus className="h-4 w-4" />
-              Add Product
+              {t("products.add_product")}
             </Link>
           </Button>
         </div>
@@ -72,45 +74,49 @@ export default function ProductsPage() {
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Products
+              {t("products.total_products")}
             </CardTitle>
             <Package className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalProducts}</div>
             <p className="text-xs text-muted-foreground">
-              {totalVariants} total variants
+              {t("products.total_variants", { count: totalVariants })}
             </p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Categories
+              {t("products.categories")}
             </CardTitle>
             <Layers className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{categories?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Product categories</p>
+            <p className="text-xs text-muted-foreground">
+              {t("products.product_categories")}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Brands
+              {t("products.brands")}
             </CardTitle>
             <Tags className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{brands?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Active brands</p>
+            <p className="text-xs text-muted-foreground">
+              {t("products.active_brands")}
+            </p>
           </CardContent>
         </Card>
         <Card className="border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Low Stock
+              {t("products.low_stock")}
             </CardTitle>
             {lowStockProducts > 0 ? (
               <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -127,7 +133,7 @@ export default function ProductsPage() {
               {lowStockProducts}
             </div>
             <p className="text-xs text-muted-foreground">
-              Products below min stock
+              {t("products.below_min_stock")}
             </p>
           </CardContent>
         </Card>
@@ -136,10 +142,8 @@ export default function ProductsPage() {
       {/* Filters & Table */}
       <Card className="border-border bg-card shadow-sm">
         <CardHeader>
-          <CardTitle>Product Catalog</CardTitle>
-          <CardDescription>
-            Browse and manage all products in your store.
-          </CardDescription>
+          <CardTitle>{t("products.catalog_title")}</CardTitle>
+          <CardDescription>{t("products.catalog_description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters */}

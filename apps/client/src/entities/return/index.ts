@@ -68,7 +68,7 @@ export const returnQueries = {
       },
       onError: (error: any) => {
         toast.error(
-          error.response?.data?.message || "Failed to create return request"
+          error.response?.data?.message || "Failed to create return request",
         );
       },
     });
@@ -87,7 +87,7 @@ export const returnQueries = {
       },
       onError: (error: any) => {
         toast.error(
-          error.response?.data?.message || "Failed to process return"
+          error.response?.data?.message || "Failed to process return",
         );
       },
     });

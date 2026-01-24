@@ -8,6 +8,7 @@ export type PurchaseItem = {
   variantId: number;
   warehouseId: number;
   serialNumber?: string;
+  batchNumber?: string;
   quantity: number;
   costPrice: number;
   variant?: any;
@@ -19,7 +20,6 @@ export type Purchase = {
   providerId?: number;
   sellerInfo?: string;
   userId: number;
-  referenceNo?: string;
   totalCost: number;
   createdAt: string;
   provider?: Provider;
@@ -58,7 +58,7 @@ export const purchaseQueries = {
       },
       onError: (error: any) => {
         toast.error(
-          error.response?.data?.message || "Failed to record purchase"
+          error.response?.data?.message || "Failed to record purchase",
         );
       },
     });

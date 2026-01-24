@@ -18,6 +18,7 @@ export type InventoryItem = {
   receivedAt: string;
   createdAt: string;
   updatedAt: string;
+  isRestocked?: boolean;
   variant?: ProductVariant & { product: Product };
   warehouse?: Warehouse;
   purchase?: {
@@ -32,6 +33,7 @@ export type UpdateInventoryPayload = {
   status?: InventoryItem["status"];
   quantity?: number;
   warehouseId?: number;
+  batchNumber?: string;
 };
 
 export type TransferInventoryPayload = {
@@ -85,7 +87,7 @@ export const inventoryQueries = {
       },
       onError: (error: any) => {
         toast.error(
-          error.response?.data?.message || "Failed to create inventory item"
+          error.response?.data?.message || "Failed to create inventory item",
         );
       },
     });
@@ -107,7 +109,7 @@ export const inventoryQueries = {
       },
       onError: (error: any) => {
         toast.error(
-          error.response?.data?.message || "Failed to update inventory"
+          error.response?.data?.message || "Failed to update inventory",
         );
       },
     });
@@ -124,7 +126,7 @@ export const inventoryQueries = {
       },
       onError: (error: any) => {
         toast.error(
-          error.response?.data?.message || "Failed to transfer stock"
+          error.response?.data?.message || "Failed to transfer stock",
         );
       },
     });

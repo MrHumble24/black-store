@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
 import { inventoryQueries, type InventoryItem } from "@/entities/inventory";
 import { warehouseQueries } from "@/entities/warehouse";
@@ -36,11 +37,13 @@ import {
   Eye,
   Download,
   Loader2,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
 
 export default function InventoryPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [warehouseId, setWarehouseId] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -51,7 +54,7 @@ export default function InventoryPage() {
   const [endDate, setEndDate] = useState<string>("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"aggregated" | "detailed">(
-    "aggregated"
+    "aggregated",
   );
 
   const { data: warehouses } = warehouseQueries.useAll();
@@ -59,13 +62,15 @@ export default function InventoryPage() {
   const { data: categories } = categoryQueries.useAll();
   const { data: inventory, isLoading } = inventoryQueries.useAll({
     warehouseId: warehouseId === "all" ? undefined : Number(warehouseId),
-    status: statusFilter === "all" ? undefined : statusFilter,
+    status:
+      statusFilter === "all" || statusFilter === "RESTOCKED"
+        ? undefined
+        : statusFilter,
   });
 
   const getFilteredItems = (items: InventoryItem[]) => {
     return items.filter((item) => {
       const searchLower = search.toLowerCase();
-      // Omni-search
       const bName = brands
         ?.find((b) => b.id === item.variant?.product?.brandId)
         ?.name?.toLowerCase();
@@ -74,19 +79,21 @@ export default function InventoryPage() {
         ?.name?.toLowerCase();
       const supplierName =
         item.purchase?.provider?.name?.toLowerCase() ||
-        (item.purchase?.type === "WALKING_CUSTOMER" ? "walking customer" : "");
+        (item.purchase?.type === "WALKING_CUSTOMER"
+          ? t("pos.walking_customer").toLowerCase()
+          : "");
 
       const matchesSearch =
         item.variant?.product.name.toLowerCase().includes(searchLower) ||
-        item.variant?.product.modelCode?.toLowerCase().includes(searchLower) ||
+        item.variant?.modelCode?.toLowerCase().includes(searchLower) ||
         item.variant?.name.toLowerCase().includes(searchLower) ||
         item.variant?.sku.toLowerCase().includes(searchLower) ||
         item.serialNumber?.toLowerCase().includes(searchLower) ||
+        item.batchNumber?.toLowerCase().includes(searchLower) ||
         (bName && bName.includes(searchLower)) ||
         (cName && cName.includes(searchLower)) ||
         supplierName.includes(searchLower);
 
-      // Filters
       const matchesBrand =
         selectedBrand === "all" ||
         item.variant?.product?.brandId === Number(selectedBrand);
@@ -94,7 +101,6 @@ export default function InventoryPage() {
         selectedCategory === "all" ||
         item.variant?.product?.categoryId === Number(selectedCategory);
 
-      // Date range filter
       let matchesDateRange = true;
       if (startDate || endDate) {
         const itemDate = new Date(item.createdAt);
@@ -110,13 +116,19 @@ export default function InventoryPage() {
         }
       }
 
+      const matchesRestockedFilter =
+        statusFilter !== "RESTOCKED" || item.isRestocked === true;
+
       return (
-        matchesSearch && matchesBrand && matchesCategory && matchesDateRange
+        matchesSearch &&
+        matchesBrand &&
+        matchesCategory &&
+        matchesDateRange &&
+        matchesRestockedFilter
       );
     });
   };
 
-  // Aggregated view logic
   const aggregatedInventory = useMemo(() => {
     if (!inventory) return [];
 
@@ -133,8 +145,8 @@ export default function InventoryPage() {
       const supplierName =
         item.purchase?.provider?.name ||
         (item.purchase?.type === "WALKING_CUSTOMER"
-          ? "Walking Customer"
-          : "Unknown");
+          ? t("pos.walking_customer")
+          : t("common.no_data"));
 
       if (existing) {
         existing.quantity += item.quantity;
@@ -143,10 +155,15 @@ export default function InventoryPage() {
           existing.warehouses.push(item.warehouse?.name);
         }
         if (
-          supplierName !== "Unknown" &&
+          supplierName !== t("common.no_data") &&
           !existing.suppliers.includes(supplierName)
         ) {
           existing.suppliers.push(supplierName);
+        }
+        if (item.isRestocked) {
+          existing.hasRestocked = true;
+          existing.restockedCount =
+            (existing.restockedCount || 0) + item.quantity;
         }
       } else {
         Map.set(key, {
@@ -154,7 +171,7 @@ export default function InventoryPage() {
           name: variant.name,
           sku: variant.sku,
           productName: variant.product.name,
-          modelCode: variant.product.modelCode || "-",
+          modelCode: variant.modelCode || "-",
           brandName:
             brands?.find((b) => b.id === variant.product.brandId)?.name || "-",
           categoryName:
@@ -163,43 +180,45 @@ export default function InventoryPage() {
           minStock: variant.product.minStock,
           quantity: item.quantity,
           totalValue: itemValue,
-          warehouses: [item.warehouse?.name || "Unknown"],
-          suppliers: supplierName !== "Unknown" ? [supplierName] : [],
-          status: item.status, // Simple status for aggregation
+          warehouses: [item.warehouse?.name || t("common.no_data")],
+          suppliers: supplierName !== t("common.no_data") ? [supplierName] : [],
+          status: item.status,
+          hasRestocked: item.isRestocked || false,
+          restockedCount: item.isRestocked ? item.quantity : 0,
         });
       }
     });
 
     return Array.from(Map.values());
-  }, [inventory, search, selectedBrand, selectedCategory, brands, categories]);
+  }, [
+    inventory,
+    search,
+    selectedBrand,
+    selectedCategory,
+    brands,
+    categories,
+    t,
+  ]);
 
-  // Detailed view logic
   const detailedInventory = useMemo(() => {
     if (!inventory) return [];
     return getFilteredItems(inventory);
   }, [inventory, search, selectedBrand, selectedCategory, brands, categories]);
 
-  // Statistics
   const stats = useMemo(() => {
     if (!inventory) return { totalUnits: 0, totalValue: 0, lowStockCount: 0 };
 
-    // Calculate stats based on CURRENT FILTERED VIEW to be dynamic
-    // But usually stats are global or per warehouse. Let's make them reflect the filtered view for "drill down" analysis
-
-    // However, low stock is best calculated from aggregation
-    // Let's recalculate from base filtered inventory to be safe
     const filteredBase = getFilteredItems(inventory || []);
 
     const totalUnits = filteredBase.reduce(
       (acc, curr) => acc + curr.quantity,
-      0
+      0,
     );
     const totalValue = filteredBase.reduce(
       (acc, curr) => acc + Number(curr.costPrice || 0) * curr.quantity,
-      0
+      0,
     );
 
-    // Low stock based on variants (aggregating first implies we check sum of qty vs minStock)
     const variantMap = new globalThis.Map<number, number>();
     const minStockMap = new globalThis.Map<number, number>();
 
@@ -227,45 +246,48 @@ export default function InventoryPage() {
     let exportData;
     if (viewMode === "aggregated") {
       exportData = dataToExport.map((item: any) => ({
-        Product: item.productName,
-        "Model Code": item.modelCode,
-        Variant: item.name,
-        SKU: item.sku,
-        Brand: item.brandName,
-        Category: item.categoryName,
-        Suppliers: item.suppliers?.join(", ") || "-",
-        Warehouses: item.warehouses.join(", "),
-        "Total Quantity": item.quantity,
-        "Min Stock": item.minStock,
-        "Total Value": item.totalValue,
-        Status: item.quantity <= item.minStock ? "LOW STOCK" : "OK",
+        [t("dashboard.product")]: item.productName,
+        [t("products.form.model_code")]: item.modelCode,
+        [t("inventory.details.variant")]: item.name,
+        [t("inventory.details.sku")]: item.sku,
+        [t("products.form.brand")]: item.brandName,
+        [t("products.form.category")]: item.categoryName,
+        [t("inventory.table.supplier")]: item.suppliers?.join(", ") || "-",
+        [t("common.warehouses")]: item.warehouses.join(", "),
+        [t("pos.total") + " " + t("inventory.filters.qty")]: item.quantity,
+        [t("products.form.min_stock_level")]: item.minStock,
+        [t("pos.total") + " " + t("inventory.table.value")]: item.totalValue,
+        [t("inventory.table.status")]:
+          item.quantity <= item.minStock
+            ? t("inventory.badges.low_stock").toUpperCase()
+            : "OK",
       }));
     } else {
       exportData = (dataToExport as InventoryItem[]).map((item) => ({
-        Product: item.variant?.product.name,
-        "Model Code": item.variant?.product.modelCode || "-",
-        Variant: item.variant?.name,
-        SKU: item.variant?.sku,
+        [t("dashboard.product")]: item.variant?.product.name,
+        [t("products.form.model_code")]: item.variant?.modelCode || "-",
+        [t("inventory.details.variant")]: item.variant?.name,
+        [t("inventory.details.sku")]: item.variant?.sku,
         "Serial/Batch": item.serialNumber || item.batchNumber || "-",
-        Supplier:
+        [t("inventory.table.supplier")]:
           item.purchase?.provider?.name ||
           item.purchase?.sellerInfo ||
-          "Unknown",
-        Warehouse: item.warehouse?.name,
-        Status: item.status,
-        "Cost Price": item.costPrice,
-        Quantity: item.quantity,
-        Value: Number(item.costPrice || 0) * item.quantity,
-        Received: item.receivedAt,
+          t("common.no_data"),
+        [t("inventory.create.warehouse")]: item.warehouse?.name,
+        [t("inventory.table.status")]: item.status,
+        [t("inventory.create.cost_price")]: item.costPrice,
+        [t("inventory.table.qty")]: item.quantity,
+        [t("pos.total")]: Number(item.costPrice || 0) * item.quantity,
+        [t("inventory.details.received_at")]: item.receivedAt,
       }));
     }
 
     const workSheet = XLSX.utils.json_to_sheet(exportData);
     const workBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workBook, workSheet, "Inventory");
+    XLSX.utils.book_append_sheet(workBook, workSheet, t("common.inventory"));
     XLSX.writeFile(
       workBook,
-      `Inventory_${viewMode}_${new Date().toISOString().slice(0, 10)}.xlsx`
+      `${t("common.inventory")}_${viewMode}_${new Date().toISOString().slice(0, 10)}.xlsx`,
     );
   };
 
@@ -284,7 +306,7 @@ export default function InventoryPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
         <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
-          Loading Inventory...
+          {t("inventory.loading")}
         </p>
       </div>
     );
@@ -292,14 +314,13 @@ export default function InventoryPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight italic">
-            INVENTORY
+            {t("inventory.title")}
           </h1>
           <p className="text-muted-foreground text-sm font-medium">
-            Monitor and manage stock levels across all locations
+            {t("inventory.description")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -311,7 +332,9 @@ export default function InventoryPage() {
           >
             <Download className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">
-              Export {viewMode === "aggregated" ? "Summary" : "Detailed"}
+              {viewMode === "aggregated"
+                ? t("inventory.export_summary")
+                : t("inventory.export_detailed")}
             </span>
           </Button>
           <Button
@@ -320,24 +343,23 @@ export default function InventoryPage() {
             className="flex-1 sm:flex-none h-10 border-border bg-card text-muted-foreground hover:text-foreground"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Entry
+            {t("inventory.entry")}
           </Button>
           <Button
             className="flex-1 sm:flex-none h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-600/10"
             onClick={() => navigate("/inventory/transfer")}
           >
             <ArrowRightLeft className="h-4 w-4 mr-2" />
-            Transfer
+            {t("inventory.transfer_action")}
           </Button>
         </div>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-500/80 mb-1">
-              Total Asset Value
+              {t("inventory.stats.asset_value")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-blue-500">
               ${stats.totalValue.toLocaleString()}
@@ -348,7 +370,7 @@ export default function InventoryPage() {
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-foreground/60 mb-1">
-              Total Units
+              {t("inventory.stats.total_units")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               {stats.totalUnits.toLocaleString()}
@@ -359,7 +381,7 @@ export default function InventoryPage() {
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-red-500/80 mb-1">
-              Low Stock Alerts
+              {t("inventory.stats.low_stock")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-red-500">
               {stats.lowStockCount}
@@ -368,14 +390,13 @@ export default function InventoryPage() {
         </Card>
       </div>
 
-      {/* Improved Filters Bar */}
       <Card className="bg-card border-border overflow-hidden">
         <div className="p-4 border-b border-border space-y-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             <div className="relative flex-1 max-w-md group w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
               <Input
-                placeholder="Search product, model code, SKU, serial, supplier, brand..."
+                placeholder={t("inventory.search_placeholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 h-10 bg-muted/50 border-border rounded-lg text-sm"
@@ -391,7 +412,7 @@ export default function InventoryPage() {
                   onClick={() => setViewMode("aggregated")}
                 >
                   <LayoutGrid className="h-3.5 w-3.5" />
-                  Summary
+                  {t("inventory.view.summary")}
                 </Button>
                 <Button
                   variant={viewMode === "detailed" ? "secondary" : "ghost"}
@@ -400,7 +421,7 @@ export default function InventoryPage() {
                   onClick={() => setViewMode("detailed")}
                 >
                   <List className="h-3.5 w-3.5" />
-                  Detailed
+                  {t("inventory.view.detailed")}
                 </Button>
               </div>
 
@@ -410,7 +431,7 @@ export default function InventoryPage() {
                 className="h-10 border-border whitespace-nowrap"
               >
                 <Filter className="w-4 h-4 mr-2" />
-                Filters
+                {t("inventory.filters.title")}
                 {isFilterOpen ? <X className="ml-2 w-3 h-3" /> : null}
               </Button>
               {(search ||
@@ -426,7 +447,7 @@ export default function InventoryPage() {
                   onClick={resetFilters}
                   className="text-xs text-red-500 hover:text-red-600 whitespace-nowrap"
                 >
-                  Reset
+                  {t("inventory.filters.reset")}
                 </Button>
               )}
             </div>
@@ -436,14 +457,18 @@ export default function InventoryPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Warehouse
+                  {t("inventory.filters.warehouse")}
                 </label>
                 <Select value={warehouseId} onValueChange={setWarehouseId}>
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Warehouses" />
+                    <SelectValue
+                      placeholder={t("inventory.filters.all_warehouses")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Warehouses</SelectItem>
+                    <SelectItem value="all">
+                      {t("inventory.filters.all_warehouses")}
+                    </SelectItem>
                     {warehouses?.map((w) => (
                       <SelectItem key={w.id} value={String(w.id)}>
                         {w.name}
@@ -454,31 +479,50 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Status
+                  {t("inventory.filters.status")}
                 </label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Status" />
+                    <SelectValue
+                      placeholder={t("inventory.filters.all_status")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="AVAILABLE">Available</SelectItem>
-                    <SelectItem value="DEFECTIVE">Defective</SelectItem>
-                    <SelectItem value="RESERVED">Reserved</SelectItem>
-                    <SelectItem value="SOLD">Sold</SelectItem>
+                    <SelectItem value="all">
+                      {t("inventory.filters.all_status")}
+                    </SelectItem>
+                    <SelectItem value="AVAILABLE">
+                      {t("inventory.filters.available")}
+                    </SelectItem>
+                    <SelectItem value="RESTOCKED">
+                      {t("inventory.filters.restocked")}
+                    </SelectItem>
+                    <SelectItem value="DEFECTIVE">
+                      {t("inventory.filters.defective")}
+                    </SelectItem>
+                    <SelectItem value="RESERVED">
+                      {t("inventory.filters.reserved")}
+                    </SelectItem>
+                    <SelectItem value="SOLD">
+                      {t("inventory.filters.sold")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Brand
+                  {t("inventory.filters.brand")}
                 </label>
                 <Select value={selectedBrand} onValueChange={setSelectedBrand}>
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Brands" />
+                    <SelectValue
+                      placeholder={t("inventory.filters.all_brands")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Brands</SelectItem>
+                    <SelectItem value="all">
+                      {t("inventory.filters.all_brands")}
+                    </SelectItem>
                     {brands?.map((b) => (
                       <SelectItem key={b.id} value={String(b.id)}>
                         {b.name}
@@ -489,17 +533,21 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Category
+                  {t("inventory.filters.category")}
                 </label>
                 <Select
                   value={selectedCategory}
                   onValueChange={setSelectedCategory}
                 >
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Categories" />
+                    <SelectValue
+                      placeholder={t("inventory.filters.all_categories")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="all">
+                      {t("inventory.filters.all_categories")}
+                    </SelectItem>
                     {categories?.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
                         {c.name}
@@ -510,7 +558,7 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Start Date
+                  {t("inventory.filters.start_date")}
                 </label>
                 <Input
                   type="date"
@@ -521,7 +569,7 @@ export default function InventoryPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  End Date
+                  {t("inventory.filters.end_date")}
                 </label>
                 <Input
                   type="date"
@@ -534,25 +582,24 @@ export default function InventoryPage() {
           )}
         </div>
 
-        {/* Table Content */}
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground w-[30%]">
-                  Product Overview
+                  {t("inventory.table.product")}
                 </TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-                  Supplier
+                  {t("inventory.table.supplier")}
                 </TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right w-[10%]">
-                  Qty
+                  {t("inventory.table.qty")}
                 </TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground text-right w-[15%]">
-                  Value
+                  {t("inventory.table.value")}
                 </TableHead>
                 <TableHead className="font-semibold text-xs uppercase tracking-wider text-muted-foreground text-center w-[15%]">
-                  Status
+                  {t("inventory.table.status")}
                 </TableHead>
                 {viewMode === "detailed" && (
                   <TableHead className="w-[50px]"></TableHead>
@@ -571,10 +618,10 @@ export default function InventoryPage() {
                   >
                     <Box className="h-12 w-12 mx-auto mb-4 opacity-20" />
                     <p className="font-medium text-lg text-foreground">
-                      No inventory records found
+                      {t("inventory.table.no_records")}
                     </p>
                     <p className="mt-1 text-sm">
-                      Try adjusting your filters or search term
+                      {t("inventory.table.adjust_filters")}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -597,7 +644,7 @@ export default function InventoryPage() {
                         "border-border transition-colors",
                         viewMode === "detailed"
                           ? "cursor-pointer hover:bg-muted/50"
-                          : "hover:bg-muted/30"
+                          : "hover:bg-muted/30",
                       )}
                       onClick={() =>
                         viewMode === "detailed" &&
@@ -621,12 +668,12 @@ export default function InventoryPage() {
                               </Badge>
                             )}
                             {viewMode === "detailed" &&
-                              item.variant?.product.modelCode && (
+                              item.variant?.modelCode && (
                                 <Badge
                                   variant="outline"
                                   className="text-[9px] px-1 py-0 h-4 bg-muted text-muted-foreground border-border"
                                 >
-                                  {item.variant.product.modelCode}
+                                  {item.variant.modelCode}
                                 </Badge>
                               )}
                           </div>
@@ -668,7 +715,8 @@ export default function InventoryPage() {
                                 : "-"}
                               {item.suppliers && item.suppliers.length > 2 && (
                                 <span className="text-[10px] text-muted-foreground">
-                                  +{item.suppliers.length - 2} more
+                                  +{item.suppliers.length - 2}{" "}
+                                  {t("common.more", "more")}
                                 </span>
                               )}
                             </div>
@@ -676,7 +724,7 @@ export default function InventoryPage() {
                             <span className="font-medium text-foreground/80">
                               {item.purchase?.provider?.name ||
                                 item.purchase?.sellerInfo ||
-                                "Unknown"}
+                                t("common.no_data")}
                             </span>
                           )}
                         </div>
@@ -687,14 +735,14 @@ export default function InventoryPage() {
                           <span
                             className={cn(
                               "font-black text-sm",
-                              isLowStock ? "text-red-500" : "text-foreground"
+                              isLowStock ? "text-red-500" : "text-foreground",
                             )}
                           >
                             {item.quantity}
                           </span>
                           {viewMode === "aggregated" && item.minStock > 0 && (
                             <span className="text-[9px] text-muted-foreground uppercase font-bold">
-                              Min: {item.minStock}
+                              {t("dashboard.min")}: {item.minStock}
                             </span>
                           )}
                         </div>
@@ -712,14 +760,14 @@ export default function InventoryPage() {
                       </TableCell>
 
                       <TableCell>
-                        <div className="flex justify-center">
+                        <div className="flex justify-center gap-1">
                           {isLowStock ? (
                             <Badge
                               variant="destructive"
                               className="h-6 gap-1 animate-pulse px-2"
                             >
                               <AlertTriangle className="h-3 w-3" />
-                              Low Stock
+                              {t("inventory.badges.low_stock")}
                             </Badge>
                           ) : (
                             <Badge
@@ -729,12 +777,24 @@ export default function InventoryPage() {
                                 viewMode === "detailed" &&
                                   item.status !== "AVAILABLE"
                                   ? "border-amber-500/50 text-amber-600 bg-amber-500/10"
-                                  : "border-emerald-500/50 text-emerald-600 bg-emerald-500/10"
+                                  : "border-emerald-500/50 text-emerald-600 bg-emerald-500/10",
                               )}
                             >
                               {viewMode === "aggregated"
-                                ? "Healthy"
-                                : item.status}
+                                ? t("inventory.badges.healthy")
+                                : (t(
+                                    `inventory.filters.${item.status.toLowerCase()}`,
+                                    item.status,
+                                  ) as string)}
+                            </Badge>
+                          )}
+                          {viewMode === "detailed" && item.isRestocked && (
+                            <Badge
+                              variant="outline"
+                              className="h-6 gap-1 px-2 border-purple-500/50 text-purple-600 bg-purple-500/10"
+                            >
+                              <RotateCcw className="h-3 w-3" />
+                              {t("inventory.badges.returned")}
                             </Badge>
                           )}
                         </div>

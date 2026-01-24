@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { purchaseQueries } from "@/entities/purchase";
 import { providerQueries } from "@/entities/provider";
 import { warehouseQueries } from "@/entities/warehouse";
@@ -18,7 +19,6 @@ import {
   Plus,
   Trash2,
   ArrowLeft,
-  Truck,
   Package,
   DollarSign,
   Loader2,
@@ -47,20 +47,19 @@ import { Tabs, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { User, Store } from "lucide-react";
 
 export default function CreatePurchasePage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     type,
     providerId,
     sellerInfo,
     warehouseId,
-    referenceNo,
     items,
     createdAt,
     setType,
     setProviderId,
     setSellerInfo,
     setWarehouseId,
-    setReferenceNo,
     setCreatedAt,
     addItem: addStoreItem,
     removeItem,
@@ -71,7 +70,7 @@ export default function CreatePurchasePage() {
   const [search, setSearch] = useState("");
   const searchInputRef = useMemo(
     () => ({ current: null as HTMLInputElement | null }),
-    []
+    [],
   );
 
   const { data: providers } = providerQueries.useAll();
@@ -90,7 +89,7 @@ export default function CreatePurchasePage() {
       p.variants.forEach((v) => {
         const fullName = `${p.name} ${v.name}`.toLowerCase();
         const sku = v.sku.toLowerCase();
-        const modelCode = (p.modelCode || "").toLowerCase();
+        const modelCode = (v.modelCode || "").toLowerCase();
 
         if (
           fullName.includes(lowerSearch) ||
@@ -101,7 +100,7 @@ export default function CreatePurchasePage() {
             id: v.id,
             name: v.name,
             productName: p.name,
-            modelCode: p.modelCode,
+            modelCode: v.modelCode,
             sku: v.sku,
             type: p.type,
           });
@@ -127,24 +126,28 @@ export default function CreatePurchasePage() {
 
   const totalCost = items.reduce(
     (sum, item) => sum + item.costPrice * item.quantity,
-    0
+    0,
   );
 
   const handleSubmit = () => {
     if (type === "PROVIDER" && !providerId)
-      return toast.error("Please select a provider");
+      return toast.error(t("purchases.create.toast.select_provider"));
     if (type === "WALKING_CUSTOMER" && !sellerInfo)
-      return toast.error("Please enter seller information");
-    if (!warehouseId) return toast.error("Please select a warehouse");
-    if (items.length === 0) return toast.error("Please add at least one item");
+      return toast.error(t("purchases.create.toast.enter_seller"));
+    if (!warehouseId)
+      return toast.error(t("purchases.create.toast.select_warehouse"));
+    if (items.length === 0)
+      return toast.error(t("purchases.create.toast.add_item"));
 
     // Validate serialized items
     const invalidSerialized = items.find(
-      (item) => item.productType === "SERIALIZED" && !item.serialNumber
+      (item) => item.productType === "SERIALIZED" && !item.serialNumber,
     );
     if (invalidSerialized) {
       return toast.error(
-        `Serial number required for ${invalidSerialized.name}`
+        t("purchases.create.toast.sn_required", {
+          name: invalidSerialized.name,
+        }),
       );
     }
 
@@ -154,7 +157,6 @@ export default function CreatePurchasePage() {
         providerId: type === "PROVIDER" ? Number(providerId) : undefined,
         sellerInfo: type === "WALKING_CUSTOMER" ? sellerInfo : undefined,
         warehouseId: Number(warehouseId),
-        referenceNo,
         createdAt: createdAt ? new Date(createdAt).toISOString() : undefined,
         items: items.map((item) => ({
           variantId: item.variantId,
@@ -162,6 +164,7 @@ export default function CreatePurchasePage() {
           quantity: item.quantity,
           costPrice: item.costPrice,
           serialNumber: item.serialNumber,
+          batchNumber: item.batchNumber,
         })),
       },
       {
@@ -169,7 +172,7 @@ export default function CreatePurchasePage() {
           resetForm();
           navigate("/purchases");
         },
-      }
+      },
     );
   };
 
@@ -188,10 +191,10 @@ export default function CreatePurchasePage() {
           </Button>
           <div>
             <h1 className="text-2xl font-black text-foreground tracking-tight italic uppercase">
-              Record Purchase
+              {t("purchases.create.title")}
             </h1>
             <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest">
-              Inbound stock entry
+              {t("purchases.create.description")}
             </p>
           </div>
         </div>
@@ -205,7 +208,7 @@ export default function CreatePurchasePage() {
           ) : (
             <>
               <CheckCircle2 className="w-5 h-5 mr-2" />
-              CONFIRM PURCHASE
+              {t("purchases.create.confirm")}
             </>
           )}
         </Button>
@@ -224,30 +227,32 @@ export default function CreatePurchasePage() {
               className="px-6 rounded-lg data-[state=active]:bg-emerald-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-wider gap-2 h-full"
             >
               <Store className="w-3.5 h-3.5" />
-              Supplier Purchase
+              {t("purchases.create.supplier_purchase")}
             </TabsTrigger>
             <TabsTrigger
               value="WALKING_CUSTOMER"
               className="px-6 rounded-lg data-[state=active]:bg-blue-600 data-[state=active]:text-white font-black text-[10px] uppercase tracking-wider gap-2 h-full"
             >
               <User className="w-3.5 h-3.5" />
-              Walking Seller
+              {t("purchases.create.walking_seller")}
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       {/* Top Bar Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         {type === "PROVIDER" ? (
           <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
             <CardContent className="p-4 space-y-2">
               <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-                Supplier
+                {t("purchases.create.supplier_label")}
               </label>
               <Select value={providerId} onValueChange={setProviderId}>
                 <SelectTrigger className="h-10 bg-muted border-border rounded-lg text-xs font-bold">
-                  <SelectValue placeholder="Select Supplier" />
+                  <SelectValue
+                    placeholder={t("purchases.create.select_supplier")}
+                  />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
                   {providers?.map((p) => (
@@ -263,12 +268,12 @@ export default function CreatePurchasePage() {
           <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1 border-l-4 border-l-blue-500">
             <CardContent className="p-4 space-y-2">
               <label className="text-[10px] font-black uppercase text-blue-500 tracking-wider">
-                Seller Details
+                {t("purchases.create.seller_details")}
               </label>
               <div className="relative">
                 <User className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
-                  placeholder="Name / Phone / ID..."
+                  placeholder={t("purchases.create.seller_placeholder")}
                   value={sellerInfo}
                   onChange={(e) => setSellerInfo(e.target.value)}
                   className="pl-8 h-10 bg-muted border-border rounded-lg text-xs font-bold"
@@ -281,11 +286,13 @@ export default function CreatePurchasePage() {
         <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
           <CardContent className="p-4 space-y-2">
             <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-              Warehouse
+              {t("purchases.create.warehouse")}
             </label>
             <Select value={warehouseId} onValueChange={setWarehouseId}>
               <SelectTrigger className="h-10 bg-muted border-border rounded-lg text-xs font-bold">
-                <SelectValue placeholder="Select Warehouse" />
+                <SelectValue
+                  placeholder={t("purchases.create.select_warehouse")}
+                />
               </SelectTrigger>
               <SelectContent className="bg-card border-border">
                 {warehouses?.map((w) => (
@@ -301,7 +308,7 @@ export default function CreatePurchasePage() {
         <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
           <CardContent className="p-4 space-y-2">
             <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-              Purchase Date
+              {t("purchases.create.purchase_date")}
             </label>
             <Input
               type="date"
@@ -312,27 +319,10 @@ export default function CreatePurchasePage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm col-span-1 lg:col-span-1">
-          <CardContent className="p-4 space-y-2">
-            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
-              Reference #
-            </label>
-            <div className="relative">
-              <Truck className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-              <Input
-                placeholder="INV-9928..."
-                value={referenceNo}
-                onChange={(e) => setReferenceNo(e.target.value)}
-                className="pl-8 h-10 bg-muted border-border rounded-lg text-xs font-bold"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
         <Card className="bg-emerald-600/5 border-emerald-500/10 col-span-1 lg:col-span-1">
           <CardContent className="p-4 flex flex-col justify-center h-full">
             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-0.5">
-              Total Cost
+              {t("purchases.create.total_cost")}
             </p>
             <h2 className="text-2xl font-black text-foreground tracking-tighter">
               ${totalCost.toLocaleString()}
@@ -346,10 +336,10 @@ export default function CreatePurchasePage() {
           <CardHeader className="pb-4 border-b border-border flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-sm font-black text-muted-foreground uppercase tracking-widest">
-                Inbound Manifest
+                {t("purchases.create.inbound_manifest")}
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground/60">
-                List of items being received into stock
+                {t("purchases.create.manifest_desc")}
               </CardDescription>
             </div>
             <div className="relative w-72">
@@ -358,7 +348,7 @@ export default function CreatePurchasePage() {
                 ref={(el) => {
                   searchInputRef.current = el;
                 }}
-                placeholder="Search products to add..."
+                placeholder={t("purchases.create.search_products")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 h-10 bg-muted border-border rounded-lg text-xs font-bold"
@@ -390,7 +380,46 @@ export default function CreatePurchasePage() {
                           )}
                         </div>
                       </div>
-                      <Plus className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="flex items-center gap-2">
+                        {v.type === "SERIALIZED" && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 text-[10px] font-black uppercase text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const input = prompt(
+                                "Paste serial numbers (separated by comma, space or newline):",
+                              );
+                              if (input) {
+                                const serials = input
+                                  .split(/[,\s\n]+/)
+                                  .filter((s) => s.trim().length > 0);
+                                serials.forEach((sn) => {
+                                  addStoreItem({
+                                    variantId: v.id,
+                                    name: `${v.productName} ${v.name}`,
+                                    sku: v.sku,
+                                    quantity: 1,
+                                    costPrice: 0,
+                                    productType: v.type,
+                                    serialNumber: sn.toUpperCase(),
+                                  });
+                                });
+                                toast.success(
+                                  t("purchases.create.toast.added_serials", {
+                                    count: serials.length,
+                                  }),
+                                );
+                                setSearch("");
+                              }
+                            }}
+                          >
+                            {t("purchases.create.bulk")}
+                          </Button>
+                        )}
+                        <Plus className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                     </button>
                   ))}
                 </div>
@@ -404,17 +433,17 @@ export default function CreatePurchasePage() {
                 <div className="flex flex-col items-center opacity-30">
                   <Package className="w-12 h-12 mb-4" />
                   <p className="font-black text-xs uppercase tracking-widest text-center">
-                    No items in manifest
+                    {t("purchases.create.no_items")}
                     <br />
                     <span className="text-[10px] font-medium normal-case tracking-normal">
-                      Search above or pick from suggestions below
+                      {t("purchases.create.search_tip")}
                     </span>
                   </p>
                 </div>
 
                 <div className="w-full max-w-md space-y-4">
                   <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center border-b border-border pb-2">
-                    Suggested Products
+                    {t("purchases.create.suggested_products")}
                   </p>
                   <div className="grid grid-cols-1 gap-2">
                     {products?.slice(0, 4).map((p) =>
@@ -440,7 +469,7 @@ export default function CreatePurchasePage() {
                           </div>
                           <Plus className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </button>
-                      ))
+                      )),
                     )}
                   </div>
                 </div>
@@ -450,16 +479,59 @@ export default function CreatePurchasePage() {
                 <TableHeader className="bg-muted/50">
                   <TableRow className="border-border h-8">
                     <TableHead className="text-[10px] font-black uppercase text-muted-foreground px-4 h-8">
-                      Product
+                      {t("purchases.create.product")}
                     </TableHead>
                     <TableHead className="text-[10px] font-black uppercase text-muted-foreground px-2 h-8">
-                      Cost Price
+                      <div className="flex items-center gap-1">
+                        {t("purchases.create.batch")}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4"
+                          onClick={() => {
+                            if (items.length > 0) {
+                              const firstBatch = items[0].batchNumber;
+                              items.forEach((_, i) =>
+                                updateItem(i, { batchNumber: firstBatch }),
+                              );
+                              toast.success(
+                                t("purchases.create.toast.applied_batch"),
+                              );
+                            }
+                          }}
+                        >
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-muted-foreground px-2 h-8">
+                      <div className="flex items-center gap-1">
+                        {t("purchases.create.cost")}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-4 w-4"
+                          onClick={() => {
+                            if (items.length > 0) {
+                              const firstCost = items[0].costPrice;
+                              items.forEach((_, i) =>
+                                updateItem(i, { costPrice: firstCost }),
+                              );
+                              toast.success(
+                                t("purchases.create.toast.applied_cost"),
+                              );
+                            }
+                          }}
+                        >
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                        </Button>
+                      </div>
                     </TableHead>
                     <TableHead className="text-[10px] font-black uppercase text-muted-foreground px-2 h-8">
                       Qty
                     </TableHead>
                     <TableHead className="text-[10px] font-black uppercase text-muted-foreground px-2 h-8">
-                      S/N or Details
+                      {t("purchases.create.sn")}
                     </TableHead>
                     <TableHead className="w-10 px-2 h-8"></TableHead>
                   </TableRow>
@@ -482,6 +554,18 @@ export default function CreatePurchasePage() {
                             {item.sku}
                           </Badge>
                         </div>
+                      </TableCell>
+                      <TableCell className="py-1 px-2">
+                        <Input
+                          placeholder={t("purchases.create.batch_id")}
+                          value={item.batchNumber || ""}
+                          onChange={(e) =>
+                            updateItem(index, {
+                              batchNumber: e.target.value,
+                            })
+                          }
+                          className="h-7 bg-muted/30 border-border text-xs font-medium"
+                        />
                       </TableCell>
                       <TableCell className="py-1 px-2">
                         <div className="relative w-24">
@@ -520,15 +604,32 @@ export default function CreatePurchasePage() {
                               value={item.serialNumber}
                               onChange={(e) =>
                                 updateItem(index, {
-                                  serialNumber: e.target.value,
+                                  serialNumber: e.target.value.toUpperCase(),
                                 })
                               }
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  const currentTr = (
+                                    e.target as HTMLElement
+                                  ).closest("tr");
+                                  const nextInput =
+                                    currentTr?.nextElementSibling?.querySelector(
+                                      'input[placeholder="Serial No."]',
+                                    ) as HTMLInputElement;
+                                  if (nextInput) {
+                                    nextInput.focus();
+                                  } else {
+                                    searchInputRef.current?.focus();
+                                  }
+                                }
+                              }}
                               className="pl-7 h-7 bg-muted/30 border-emerald-500/20 text-xs font-mono uppercase text-foreground placeholder:text-muted-foreground/20"
                             />
                           </div>
                         ) : (
                           <span className="text-[10px] text-muted-foreground/40 font-bold uppercase italic ml-2">
-                            Batch
+                            {t("purchases.create.non_serialized")}
                           </span>
                         )}
                       </TableCell>

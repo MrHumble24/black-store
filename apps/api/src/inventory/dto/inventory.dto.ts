@@ -21,6 +21,10 @@ export class UpdateInventoryDto {
   @IsOptional()
   @IsInt()
   warehouseId?: number;
+
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
 }
 
 export class CreateInventoryDto {

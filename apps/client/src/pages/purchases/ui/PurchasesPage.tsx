@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { purchaseQueries } from "@/entities/purchase";
 import { Button } from "@/shared/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card";
@@ -20,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Badge } from "@/shared/ui/badge";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { PurchaseFilters } from "./PurchaseFilters";
 import type { PurchaseFilterValues } from "./PurchaseFilters";
@@ -34,6 +34,7 @@ const INITIAL_FILTERS: PurchaseFilterValues = {
 };
 
 export default function PurchasesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: purchases, isLoading } = purchaseQueries.useAll();
   const [filters, setFilters] = useState<PurchaseFilterValues>(INITIAL_FILTERS);
@@ -42,13 +43,16 @@ export default function PurchasesPage() {
     if (!purchases) return [];
     return purchases.filter((p) => {
       // Search
+      const searchLower = filters.search.toLowerCase();
       const matchesSearch =
         !filters.search ||
-        p.referenceNo?.toLowerCase().includes(filters.search.toLowerCase()) ||
-        p.provider?.name
-          ?.toLowerCase()
-          .includes(filters.search.toLowerCase()) ||
-        p.sellerInfo?.toLowerCase().includes(filters.search.toLowerCase());
+        p.provider?.name?.toLowerCase().includes(searchLower) ||
+        p.sellerInfo?.toLowerCase().includes(searchLower) ||
+        p.items?.some(
+          (item) =>
+            item.batchNumber?.toLowerCase().includes(searchLower) ||
+            item.serialNumber?.toLowerCase().includes(searchLower),
+        );
 
       // Type
       const matchesType = filters.type === "all" || p.type === filters.type;
@@ -80,7 +84,7 @@ export default function PurchasesPage() {
     const totalPurchases = purchases.length;
     const expenditure = purchases.reduce(
       (acc, p) => acc + Number(p.totalCost),
-      0
+      0,
     );
     return { totalPurchases, expenditure };
   }, [purchases]);
@@ -90,7 +94,7 @@ export default function PurchasesPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
         <p className="text-muted-foreground font-black uppercase tracking-widest text-[10px]">
-          Decrypting Invoices...
+          {t("purchases.decrypting")}
         </p>
       </div>
     );
@@ -102,10 +106,10 @@ export default function PurchasesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight italic">
-            PURCHASES
+            {t("purchases.title")}
           </h1>
           <p className="text-sm text-muted-foreground font-medium">
-            Manage inbound stock and supplier invoices
+            {t("purchases.description")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -114,7 +118,9 @@ export default function PurchasesPage() {
             className="flex-1 sm:flex-none h-10 border-border bg-card text-muted-foreground hover:text-foreground"
           >
             <Download className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">
+              {t("purchases.export_csv")}
+            </span>
             <span className="sm:hidden">Export</span>
           </Button>
           <Button
@@ -122,7 +128,7 @@ export default function PurchasesPage() {
             className="flex-1 sm:flex-none h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/10"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Purchase
+            {t("purchases.new_purchase")}
           </Button>
         </div>
       </div>
@@ -135,7 +141,7 @@ export default function PurchasesPage() {
           </div>
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-              Total Expenditure
+              {t("purchases.stats.total_expenditure")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               ${stats.expenditure.toLocaleString()}
@@ -148,7 +154,7 @@ export default function PurchasesPage() {
           </div>
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-              Supplier Invoices
+              {t("purchases.stats.supplier_invoices")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               {stats.totalPurchases}
@@ -161,12 +167,12 @@ export default function PurchasesPage() {
           </div>
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-              Recent Activity
+              {t("purchases.stats.recent_activity")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               {purchases && purchases.length > 0
                 ? format(new Date(purchases[0].createdAt), "MMM d")
-                : "No data"}
+                : t("purchases.stats.no_data")}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -186,22 +192,19 @@ export default function PurchasesPage() {
               <TableHeader className="bg-muted/50">
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                    Date
+                    {t("purchases.table.date")}
                   </TableHead>
                   <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                    Reference No.
+                    {t("purchases.table.supplier")}
                   </TableHead>
                   <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                    Supplier
-                  </TableHead>
-                  <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest">
-                    Received By
+                    {t("purchases.table.received_by")}
                   </TableHead>
                   <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right">
-                    Total Cost
+                    {t("purchases.table.total_cost")}
                   </TableHead>
                   <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right">
-                    Actions
+                    {t("purchases.table.actions")}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -210,7 +213,7 @@ export default function PurchasesPage() {
                   <TableRow className="border-border hover:bg-transparent">
                     <TableCell colSpan={6} className="h-32 text-center">
                       <p className="text-muted-foreground/60 italic text-sm">
-                        No purchase records found
+                        {t("purchases.table.no_records")}
                       </p>
                     </TableCell>
                   </TableRow>
@@ -226,7 +229,7 @@ export default function PurchasesPage() {
                           <span className="text-foreground/80 font-medium text-sm">
                             {format(
                               new Date(purchase.createdAt),
-                              "MMM d, yyyy"
+                              "MMM d, yyyy",
                             )}
                           </span>
                           <span className="text-[10px] text-muted-foreground/40 font-bold uppercase">
@@ -234,14 +237,7 @@ export default function PurchasesPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="border-border bg-muted/50 text-emerald-500 font-mono"
-                        >
-                          {purchase.referenceNo || "N/A"}
-                        </Badge>
-                      </TableCell>
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 rounded-full bg-emerald-600/10 flex items-center justify-center text-[10px] font-black text-emerald-500 border border-emerald-500/10">

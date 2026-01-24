@@ -8,6 +8,7 @@ export type PurchaseItem = {
   quantity: number;
   costPrice: number;
   serialNumber?: string;
+  batchNumber?: string;
   productType: "SERIALIZED" | "BATCH";
 };
 
@@ -16,7 +17,6 @@ interface PurchaseState {
   providerId: string;
   sellerInfo: string;
   warehouseId: string;
-  referenceNo: string;
   createdAt: string;
   items: PurchaseItem[];
 
@@ -25,7 +25,6 @@ interface PurchaseState {
   setProviderId: (id: string) => void;
   setSellerInfo: (info: string) => void;
   setWarehouseId: (id: string) => void;
-  setReferenceNo: (no: string) => void;
   setCreatedAt: (date: string) => void;
   addItem: (item: PurchaseItem) => void;
   removeItem: (index: number) => void;
@@ -40,7 +39,6 @@ export const usePurchaseStore = create<PurchaseState>()(
       providerId: "",
       sellerInfo: "",
       warehouseId: "",
-      referenceNo: "",
       createdAt: new Date().toISOString().split("T")[0],
       items: [],
 
@@ -48,7 +46,6 @@ export const usePurchaseStore = create<PurchaseState>()(
       setProviderId: (id) => set({ providerId: id }),
       setSellerInfo: (info) => set({ sellerInfo: info }),
       setWarehouseId: (id) => set({ warehouseId: id }),
-      setReferenceNo: (no) => set({ referenceNo: no }),
       setCreatedAt: (date) => set({ createdAt: date }),
 
       addItem: (item) =>
@@ -74,13 +71,12 @@ export const usePurchaseStore = create<PurchaseState>()(
           providerId: "",
           sellerInfo: "",
           warehouseId: "",
-          referenceNo: "",
           createdAt: new Date().toISOString().split("T")[0],
           items: [],
         }),
     }),
     {
       name: "purchase-form-storage",
-    }
-  )
+    },
+  ),
 );

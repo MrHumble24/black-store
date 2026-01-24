@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
 import { salesQueries, type Sale } from "@/entities/sale";
 import { brandQueries } from "@/entities/brand";
@@ -28,6 +29,7 @@ import { format, startOfDay, endOfDay } from "date-fns";
 import { cn } from "@/shared/lib/utils";
 
 export default function SalesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { data: sales, isLoading } = salesQueries.useAll();
   const { data: brands } = brandQueries.useAll();
@@ -50,7 +52,7 @@ export default function SalesPage() {
   const calculateSaleCosts = (sale: Sale) => {
     return (
       sale.items?.reduce((total, item) => {
-        const cost = item.variant?.inventory?.[0]?.costPrice || 0;
+        const cost = item.costPrice || 0;
         return total + Number(cost) * item.quantity;
       }, 0) || 0
     );
@@ -89,12 +91,12 @@ export default function SalesPage() {
       const hasBrand =
         selectedBrand === "all" ||
         s.items.some(
-          (i) => i.variant?.product?.brandId === Number(selectedBrand)
+          (i) => i.variant?.product?.brandId === Number(selectedBrand),
         );
       const hasCategory =
         selectedCategory === "all" ||
         s.items.some(
-          (i) => i.variant?.product?.categoryId === Number(selectedCategory)
+          (i) => i.variant?.product?.categoryId === Number(selectedCategory),
         );
 
       const amount = Number(s.totalAmount);
@@ -130,11 +132,11 @@ export default function SalesPage() {
     const totalSales = filteredSales.length;
     const revenue = filteredSales.reduce(
       (acc, s) => acc + Number(s.totalAmount),
-      0
+      0,
     );
     const totalCost = filteredSales.reduce(
       (acc, s) => acc + calculateSaleCosts(s),
-      0
+      0,
     );
     const totalProfit = revenue - totalCost;
     const margin = revenue > 0 ? (totalProfit / revenue) * 100 : 0;
@@ -161,24 +163,28 @@ export default function SalesPage() {
       const profit = sold - cost;
 
       return {
-        "Invoice No": s.invoiceNo,
-        Date: format(new Date(s.createdAt), "yyyy-MM-dd HH:mm"),
-        Customer: s.customerName || "Walking Customer",
+        [t("sales.table.invoice_no")]: s.invoiceNo,
+        [t("sales.table.date_time")]: format(
+          new Date(s.createdAt),
+          "yyyy-MM-dd HH:mm",
+        ),
+        [t("sales.table.customer")]:
+          s.customerName || t("pos.walking_customer"),
         "Items Count": s.items.length,
-        "Total Cost": cost,
-        "Total Sold": sold,
-        Profit: profit,
-        "Payment Method": s.paymentMethod,
+        [t("sales.table.cost")]: cost,
+        [t("sales.table.sold")]: sold,
+        [t("sales.table.profit")]: profit,
+        [t("sales.filters.payment_method")]: s.paymentMethod,
         Salesperson: s.user?.name || "System",
       };
     });
 
     const workSheet = XLSX.utils.json_to_sheet(data);
     const workBook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workBook, workSheet, "Sales");
+    XLSX.utils.book_append_sheet(workBook, workSheet, t("common.sales"));
     XLSX.writeFile(
       workBook,
-      `Sales_Export_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`
+      `Sales_Export_${format(new Date(), "yyyyMMdd_HHmm")}.xlsx`,
     );
   };
 
@@ -187,7 +193,7 @@ export default function SalesPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
         <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
-          Loading Transactions...
+          {t("sales.loading")}
         </p>
       </div>
     );
@@ -199,10 +205,10 @@ export default function SalesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-foreground tracking-tight italic">
-            SALES HISTORY
+            {t("sales.title")}
           </h1>
           <p className="text-sm text-muted-foreground font-medium">
-            Manage and review all customer transactions
+            {t("sales.description")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -213,14 +219,14 @@ export default function SalesPage() {
             disabled={filteredSales.length === 0}
           >
             <Download className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Export Excel</span>
+            <span className="hidden sm:inline">{t("sales.export_excel")}</span>
           </Button>
           <Button
             onClick={() => navigate("/pos")}
             className="flex-1 sm:flex-none h-10 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-600/10"
           >
             <Plus className="w-4 h-4 mr-2" />
-            New Sale
+            {t("sales.new_sale")}
           </Button>
         </div>
       </div>
@@ -230,7 +236,7 @@ export default function SalesPage() {
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-              Gross Revenue
+              {t("sales.stats.revenue")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               ${stats.revenue.toLocaleString()}
@@ -240,7 +246,7 @@ export default function SalesPage() {
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-blue-500/80 mb-1">
-              Total Profit
+              {t("sales.stats.profit")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-blue-500">
               ${stats.totalProfit.toLocaleString()}
@@ -250,7 +256,7 @@ export default function SalesPage() {
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80 mb-1">
-              Avg Margin
+              {t("sales.stats.margin")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-emerald-500">
               {stats.margin.toFixed(1)}%
@@ -260,7 +266,7 @@ export default function SalesPage() {
         <Card className="bg-card border-border overflow-hidden relative group">
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-              Invoices
+              {t("sales.stats.invoices")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               {stats.totalSales}
@@ -276,7 +282,7 @@ export default function SalesPage() {
             <div className="relative flex-1 max-w-md group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-blue-500 transition-colors" />
               <Input
-                placeholder="Search invoice or customer..."
+                placeholder={t("sales.filters.search_placeholder")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10 h-10 bg-muted/50 border-border rounded-lg text-sm"
@@ -289,7 +295,7 @@ export default function SalesPage() {
                 className="h-10 border-border"
               >
                 <Filter className="w-4 h-4 mr-2" />
-                Advanced Filters
+                {t("sales.filters.advanced")}
                 {isFilterOpen ? <X className="ml-2 w-3 h-3" /> : null}
               </Button>
               {(dateRange.from ||
@@ -305,7 +311,7 @@ export default function SalesPage() {
                   onClick={resetFilters}
                   className="text-xs text-red-500 hover:text-red-600"
                 >
-                  Reset
+                  {t("inventory.filters.reset")}
                 </Button>
               )}
             </div>
@@ -315,7 +321,7 @@ export default function SalesPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Date Range
+                  {t("sales.filters.date_range")}
                 </label>
                 <div className="flex gap-2">
                   <Input
@@ -341,32 +347,46 @@ export default function SalesPage() {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Payment Method
+                  {t("sales.filters.payment_method")}
                 </label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Methods" />
+                    <SelectValue placeholder={t("sales.filters.all_methods")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Methods</SelectItem>
-                    <SelectItem value="CASH">Cash</SelectItem>
-                    <SelectItem value="CARD">Card</SelectItem>
-                    <SelectItem value="TRANSFER">Transfer</SelectItem>
-                    <SelectItem value="OTHER">Other</SelectItem>
+                    <SelectItem value="all">
+                      {t("sales.filters.all_methods")}
+                    </SelectItem>
+                    <SelectItem value="CASH">
+                      {t("pos.payment_cash")}
+                    </SelectItem>
+                    <SelectItem value="CARD">
+                      {t("pos.payment_card")}
+                    </SelectItem>
+                    <SelectItem value="TRANSFER">
+                      {t("pos.payment_transfer")}
+                    </SelectItem>
+                    <SelectItem value="OTHER">
+                      {t("pos.payment_other")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Brand
+                  {t("inventory.filters.brand")}
                 </label>
                 <Select value={selectedBrand} onValueChange={setSelectedBrand}>
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Brands" />
+                    <SelectValue
+                      placeholder={t("inventory.filters.all_brands")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Brands</SelectItem>
+                    <SelectItem value="all">
+                      {t("inventory.filters.all_brands")}
+                    </SelectItem>
                     {brands?.map((b) => (
                       <SelectItem key={b.id} value={String(b.id)}>
                         {b.name}
@@ -378,17 +398,21 @@ export default function SalesPage() {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Category
+                  {t("inventory.filters.category")}
                 </label>
                 <Select
                   value={selectedCategory}
                   onValueChange={setSelectedCategory}
                 >
                   <SelectTrigger className="h-9 text-xs bg-muted/30">
-                    <SelectValue placeholder="All Categories" />
+                    <SelectValue
+                      placeholder={t("inventory.filters.all_categories")}
+                    />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="all">
+                      {t("inventory.filters.all_categories")}
+                    </SelectItem>
                     {categories?.map((c) => (
                       <SelectItem key={c.id} value={String(c.id)}>
                         {c.name}
@@ -400,18 +424,18 @@ export default function SalesPage() {
 
               <div className="space-y-2 lg:col-span-4">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                  Amount Range ($)
+                  {t("sales.filters.amount_range")}
                 </label>
                 <div className="flex gap-2 max-w-sm">
                   <Input
-                    placeholder="Min"
+                    placeholder={t("sales.filters.min")}
                     type="number"
                     value={minAmount}
                     onChange={(e) => setMinAmount(e.target.value)}
                     className="h-9 text-xs bg-muted/30"
                   />
                   <Input
-                    placeholder="Max"
+                    placeholder={t("sales.filters.max")}
                     type="number"
                     value={maxAmount}
                     onChange={(e) => setMaxAmount(e.target.value)}
@@ -428,26 +452,25 @@ export default function SalesPage() {
             <TableHeader className="bg-muted/50">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest whitespace-nowrap">
-                  Date / Time
+                  {t("sales.table.date_time")}
                 </TableHead>
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest whitespace-nowrap">
-                  Invoice No.
+                  {t("sales.table.invoice_no")}
                 </TableHead>
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest whitespace-nowrap">
-                  Customer
+                  {t("sales.table.customer")}
                 </TableHead>
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right whitespace-nowrap">
-                  Cost
+                  {t("sales.table.cost")}
                 </TableHead>
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right whitespace-nowrap">
-                  Sold
+                  {t("sales.table.sold")}
                 </TableHead>
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right whitespace-nowrap">
-                  Profit
+                  {t("sales.table.profit")}
                 </TableHead>
-                {/* Margin column removed */}
                 <TableHead className="text-muted-foreground/60 font-bold uppercase text-[10px] tracking-widest text-right whitespace-nowrap">
-                  Pay
+                  {t("sales.table.pay")}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -456,7 +479,7 @@ export default function SalesPage() {
                 <TableRow className="border-border hover:bg-transparent">
                   <TableCell colSpan={7} className="h-32 text-center">
                     <p className="text-muted-foreground italic text-sm">
-                      No sales records found
+                      {t("sales.table.no_records")}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -465,7 +488,6 @@ export default function SalesPage() {
                   const cost = calculateSaleCosts(sale);
                   const sold = Number(sale.totalAmount);
                   const profit = sold - cost;
-                  // Margin calculation logic removed from UI
 
                   return (
                     <TableRow
@@ -494,7 +516,7 @@ export default function SalesPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span className="text-foreground font-bold text-xs truncate max-w-[120px]">
-                            {sale.customerName || "Walking Customer"}
+                            {sale.customerName || t("pos.walking_customer")}
                           </span>
                         </div>
                       </TableCell>
@@ -512,13 +534,12 @@ export default function SalesPage() {
                         <span
                           className={cn(
                             "font-black text-xs font-mono",
-                            profit >= 0 ? "text-emerald-500" : "text-red-500"
+                            profit >= 0 ? "text-emerald-500" : "text-red-500",
                           )}
                         >
                           ${profit.toLocaleString()}
                         </span>
                       </TableCell>
-                      {/* Margin cell removed */}
                       <TableCell className="text-right">
                         <Badge
                           variant="outline"

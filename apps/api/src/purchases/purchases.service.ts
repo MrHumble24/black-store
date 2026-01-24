@@ -19,7 +19,6 @@ export class PurchasesService {
           type: dto.type || 'PROVIDER',
           providerId: dto.providerId,
           userId,
-          referenceNo: dto.referenceNo,
           sellerInfo: dto.sellerInfo,
           totalCost,
           createdAt: purchaseDate,
@@ -44,6 +43,7 @@ export class PurchasesService {
               variantId: item.variantId,
               warehouseId: item.warehouseId,
               serialNumber: item.serialNumber,
+              batchNumber: item.batchNumber,
               quantity: 1,
               costPrice: item.costPrice,
               purchaseId: purchase.id,
@@ -55,6 +55,7 @@ export class PurchasesService {
             data: {
               variantId: item.variantId,
               warehouseId: item.warehouseId,
+              batchNumber: item.batchNumber,
               quantity: item.quantity,
               costPrice: item.costPrice,
               purchaseId: purchase.id,
@@ -77,14 +78,32 @@ export class PurchasesService {
 
       return tx.purchase.findUnique({
         where: { id: purchase.id },
-        include: { items: { include: { variant: true } }, provider: true },
+        include: {
+          items: {
+            include: {
+              variant: {
+                include: { product: true },
+              },
+            },
+          },
+          provider: true,
+        },
       });
     });
   }
 
   findAll() {
     return this.prisma.purchase.findMany({
-      include: { provider: true, user: { select: { id: true, name: true } } },
+      include: {
+        provider: true,
+        user: { select: { id: true, name: true } },
+        items: {
+          select: {
+            batchNumber: true,
+            serialNumber: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

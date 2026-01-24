@@ -24,7 +24,6 @@ export class ProductsService {
     return this.prisma.product.create({
       data: {
         name: dto.name,
-        modelCode: dto.modelCode,
         description: dto.description,
         type: dto.type,
         minStock: dto.minStock ?? 5,
@@ -34,6 +33,7 @@ export class ProductsService {
           ? {
               create: dto.variants.map((v) => ({
                 sku: v.sku,
+                modelCode: v.modelCode,
                 name: v.name,
                 specs: v.specs,
               })),
@@ -114,6 +114,7 @@ export class ProductsService {
       data: {
         productId,
         sku: dto.sku,
+        modelCode: dto.modelCode,
         name: dto.name,
         specs: dto.specs,
       },
@@ -174,6 +175,7 @@ export class ProductsService {
           where: { id: v.id },
           data: {
             sku: v.sku,
+            modelCode: v.modelCode,
             name: v.name,
             specs: v.specs,
             isActive: v.isActive,

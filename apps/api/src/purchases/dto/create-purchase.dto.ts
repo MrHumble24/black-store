@@ -17,6 +17,10 @@ export class PurchaseItemDto {
   @IsString()
   serialNumber?: string;
 
+  @IsOptional()
+  @IsString()
+  batchNumber?: string;
+
   @IsInt()
   @Min(1)
   quantity: number;
@@ -46,10 +50,6 @@ export class CreatePurchaseDto {
   @IsOptional()
   @IsString()
   sellerInfo?: string;
-
-  @IsOptional()
-  @IsString()
-  referenceNo?: string;
 
   @IsOptional()
   @IsString()

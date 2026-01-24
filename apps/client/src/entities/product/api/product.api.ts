@@ -3,12 +3,14 @@ import type { Product, ProductVariant } from "../model/types";
 
 export type CreateVariantPayload = {
   sku: string;
+  modelCode?: string;
   name: string;
   specs: Record<string, string>;
 };
 
 export type UpdateVariantPayload = {
   sku?: string;
+  modelCode?: string;
   name?: string;
   specs?: Record<string, string>;
   isActive?: boolean;
@@ -16,7 +18,6 @@ export type UpdateVariantPayload = {
 
 export type CreateProductPayload = {
   name: string;
-  modelCode?: string;
   description?: string;
   type: "SERIALIZED" | "BATCH";
   minStock?: number;

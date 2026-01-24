@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { brandQueries, brandsApi } from "@/entities/brand";
 import { categoryQueries, categoriesApi } from "@/entities/category";
@@ -18,7 +19,6 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { Textarea } from "@/shared/ui/textarea";
 import { Badge } from "@/shared/ui/badge";
 import { CreatableSelect } from "@/shared/ui/creatable-select";
 import {
@@ -46,17 +46,18 @@ import { toast } from "sonner";
 
 // Predefined specs for mobile devices
 const MOBILE_SPEC_PRESETS = [
-  { key: "Color", placeholder: "e.g., Space Black, Deep Purple" },
-  { key: "Storage", placeholder: "e.g., 128GB, 256GB, 512GB" },
-  { key: "RAM", placeholder: "e.g., 6GB, 8GB, 12GB" },
-  { key: "Region", placeholder: "e.g., US, EU, UAE, China" },
-  { key: "Condition", placeholder: "e.g., New, Like New, Good" },
-  { key: "SIM", placeholder: "e.g., Dual SIM, eSIM, Physical" },
+  { key: "Color", placeholderKey: "products.form.spec_val_placeholder" },
+  { key: "Storage", placeholderKey: "products.form.spec_val_placeholder" },
+  { key: "RAM", placeholderKey: "products.form.spec_val_placeholder" },
+  { key: "Region", placeholderKey: "products.form.spec_val_placeholder" },
+  { key: "Condition", placeholderKey: "products.form.spec_val_placeholder" },
+  { key: "SIM", placeholderKey: "products.form.spec_val_placeholder" },
 ] as const;
 
 type VariantFormData = {
   id?: number; // undefined for new variants
   sku: string;
+  modelCode: string;
   name: string;
   specs: { key: string; value: string }[];
   isNew?: boolean;
@@ -64,6 +65,7 @@ type VariantFormData = {
 };
 
 export default function EditProductPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const productId = parseInt(id || "0");
@@ -71,7 +73,6 @@ export default function EditProductPage() {
 
   // Form state
   const [name, setName] = useState("");
-  const [modelCode, setModelCode] = useState("");
   const [description, setDescription] = useState("");
   const [type, setType] = useState<"SERIALIZED" | "BATCH">("SERIALIZED");
   const [minStock, setMinStock] = useState("5");
@@ -91,7 +92,6 @@ export default function EditProductPage() {
   useEffect(() => {
     if (product) {
       setName(product.name);
-      setModelCode(product.modelCode || "");
       setDescription(product.description || "");
       setType(product.type);
       setMinStock(String(product.minStock));
@@ -102,6 +102,7 @@ export default function EditProductPage() {
       const variantFormData: VariantFormData[] = product.variants.map((v) => ({
         id: v.id,
         sku: v.sku,
+        modelCode: v.modelCode || "",
         name: v.name,
         specs: Object.entries(v.specs || {}).map(([key, value]) => ({
           key,
@@ -127,7 +128,7 @@ export default function EditProductPage() {
     try {
       const response = await brandsApi.create({ name });
       await queryClient.invalidateQueries({ queryKey: ["brands"] });
-      toast.success("Brand created successfully");
+      toast.success(t("products.form.brand_create_success"));
       return response.data;
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create brand");
@@ -139,7 +140,7 @@ export default function EditProductPage() {
     try {
       const response = await categoriesApi.create({ name });
       await queryClient.invalidateQueries({ queryKey: ["categories"] });
-      toast.success("Category created successfully");
+      toast.success(t("products.form.category_create_success"));
       return response.data;
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create category");
@@ -161,6 +162,7 @@ export default function EditProductPage() {
   const addVariant = () => {
     const newVariant: VariantFormData = {
       sku: "",
+      modelCode: "",
       name: "",
       specs: MOBILE_SPEC_PRESETS.slice(0, 4).map((preset) => ({
         key: preset.key,
@@ -175,10 +177,8 @@ export default function EditProductPage() {
   const removeVariant = (index: number) => {
     const variant = variants[index];
     if (variant.isNew) {
-      // Just remove from array if it's new
       setVariants(variants.filter((_, i) => i !== index));
     } else {
-      // Mark as deleted if it's existing
       const updated = [...variants];
       updated[index] = { ...updated[index], isDeleted: true };
       setVariants(updated);
@@ -194,7 +194,7 @@ export default function EditProductPage() {
   const updateVariant = (
     index: number,
     field: keyof VariantFormData,
-    value: string
+    value: string,
   ) => {
     const updated = [...variants];
     if (
@@ -212,7 +212,7 @@ export default function EditProductPage() {
     const updated = [...variants];
     const usedKeys = updated[variantIndex].specs.map((s) => s.key);
     const availablePreset = MOBILE_SPEC_PRESETS.find(
-      (p) => !usedKeys.includes(p.key)
+      (p) => !usedKeys.includes(p.key),
     );
     updated[variantIndex].specs.push({
       key: availablePreset?.key || "",
@@ -225,7 +225,7 @@ export default function EditProductPage() {
     const updated = [...variants];
     if (updated[variantIndex].specs.length > 1) {
       updated[variantIndex].specs = updated[variantIndex].specs.filter(
-        (_, i) => i !== specIndex
+        (_, i) => i !== specIndex,
       );
       setVariants(updated);
     }
@@ -235,7 +235,7 @@ export default function EditProductPage() {
     variantIndex: number,
     specIndex: number,
     field: "key" | "value",
-    value: string
+    value: string,
   ) => {
     const updated = [...variants];
     updated[variantIndex].specs[specIndex][field] = value;
@@ -245,7 +245,7 @@ export default function EditProductPage() {
   // Generate SKU for new variants
   const generateSKU = (
     variantName: string,
-    specs: { key: string; value: string }[]
+    specs: { key: string; value: string }[],
   ): string => {
     const abbreviate = (text: string, maxLen: number = 3): string => {
       const cleaned = text.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -282,12 +282,10 @@ export default function EditProductPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Update product basic info
       await updateMutation.mutateAsync({
         id: productId,
         data: {
           name,
-          modelCode: modelCode || undefined,
           description: description || undefined,
           minStock: parseInt(minStock) || 5,
           brandId: parseInt(brandId),
@@ -295,19 +293,17 @@ export default function EditProductPage() {
         },
       });
 
-      // 2. Handle variant changes
       const promises: Promise<any>[] = [];
 
       for (const variant of variants) {
         if (variant.isDeleted && variant.id) {
-          // Delete existing variant
           promises.push(productsApi.deleteVariant(variant.id));
         } else if (variant.isNew && !variant.isDeleted) {
-          // Add new variant
           if (variant.name) {
             const newVariantData: CreateVariantPayload = {
               sku: generateSKU(variant.name, variant.specs),
               name: variant.name,
+              modelCode: variant.modelCode || undefined,
               specs: variant.specs
                 .filter((s) => s.key && s.value)
                 .reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {}),
@@ -315,9 +311,9 @@ export default function EditProductPage() {
             promises.push(productsApi.addVariant(productId, newVariantData));
           }
         } else if (!variant.isNew && !variant.isDeleted && variant.id) {
-          // Update existing variant
           const updateData: UpdateVariantPayload = {
             name: variant.name,
+            modelCode: variant.modelCode || undefined,
             specs: variant.specs
               .filter((s) => s.key && s.value)
               .reduce((acc, s) => ({ ...acc, [s.key]: s.value }), {}),
@@ -328,11 +324,10 @@ export default function EditProductPage() {
 
       await Promise.all(promises);
 
-      // Invalidate queries
       await queryClient.invalidateQueries({ queryKey: ["products"] });
       await queryClient.invalidateQueries({ queryKey: ["product", productId] });
 
-      toast.success("Product updated successfully");
+      toast.success(t("products.form.success_update"));
       navigate("/products");
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to update product");
@@ -345,17 +340,14 @@ export default function EditProductPage() {
   const isFormValid =
     name && brandId && categoryId && activeVariants.some((v) => v.name);
 
-  const getSpecPlaceholder = (key: string) => {
-    const preset = MOBILE_SPEC_PRESETS.find((p) => p.key === key);
-    return preset?.placeholder || "Enter value";
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading product...</p>
+          <p className="text-muted-foreground">
+            {t("products.form.loading_product")}
+          </p>
         </div>
       </div>
     );
@@ -367,14 +359,14 @@ export default function EditProductPage() {
         <div className="flex flex-col items-center gap-4 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
-            <h2 className="text-xl font-semibold">Product not found</h2>
+            <h2 className="text-xl font-semibold">{t("products.not_found")}</h2>
             <p className="text-muted-foreground mt-1">
-              The product you're looking for doesn't exist or has been deleted.
+              {t("products.not_found_description")}
             </p>
           </div>
           <Button onClick={() => navigate("/products")} variant="outline">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Products
+            {t("products.back_to_products")}
           </Button>
         </div>
       </div>
@@ -383,7 +375,6 @@ export default function EditProductPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
@@ -394,9 +385,11 @@ export default function EditProductPage() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Edit Product</h1>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {t("products.edit_product")}
+          </h1>
           <p className="text-muted-foreground">
-            Update product details and manage variants
+            {t("products.edit_description")}
           </p>
         </div>
       </div>
@@ -411,76 +404,57 @@ export default function EditProductPage() {
                   <Package className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <CardTitle>Product Information</CardTitle>
+                  <CardTitle>{t("products.form.product_info")}</CardTitle>
                   <CardDescription>
-                    Basic details about your product
+                    {t("products.form.basic_details")}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Product Name *</Label>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="name">
+                    {t("products.form.product_name")} *
+                  </Label>
                   <Input
                     id="name"
-                    placeholder="e.g., iPhone 15 Pro"
+                    placeholder={t("products.form.name_placeholder")}
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="bg-muted/50"
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="modelCode">Model Code</Label>
-                  <Input
-                    id="modelCode"
-                    placeholder="e.g., A3090, SM-S921B"
-                    value={modelCode}
-                    onChange={(e) => setModelCode(e.target.value)}
-                    className="bg-muted/50"
-                  />
-                </div>
               </div>
-
-              {/* <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Describe your product..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="bg-muted/50 min-h-24"
-                />
-              </div> */}
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label>Brand *</Label>
+                  <Label>{t("products.form.brand")} *</Label>
                   <CreatableSelect
                     options={brandOptions}
                     value={brandId}
                     onChange={setBrandId}
                     onCreateNew={handleCreateBrand}
-                    placeholder="Select or create brand"
-                    searchPlaceholder="Search brands..."
-                    emptyText="No brands found"
-                    createText="Create brand"
+                    placeholder={t("products.form.select_brand")}
+                    searchPlaceholder={t("products.search_brands")}
+                    emptyText={t("products.no_brands_found")}
+                    createText={t("products.form.create_brand")}
                     isLoading={brandsLoading}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Category *</Label>
+                  <Label>{t("products.form.category")} *</Label>
                   <CreatableSelect
                     options={categoryOptions}
                     value={categoryId}
                     onChange={setCategoryId}
                     onCreateNew={handleCreateCategory}
-                    placeholder="Select or create category"
-                    searchPlaceholder="Search categories..."
-                    emptyText="No categories found"
-                    createText="Create category"
+                    placeholder={t("products.form.select_category")}
+                    searchPlaceholder={t("products.search_categories")}
+                    emptyText={t("products.no_categories_found")}
+                    createText={t("products.form.create_category")}
                     isLoading={categoriesLoading}
                   />
                 </div>
@@ -496,34 +470,40 @@ export default function EditProductPage() {
                   <Boxes className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
-                  <CardTitle>Settings</CardTitle>
+                  <CardTitle>{t("products.form.settings")}</CardTitle>
                   <CardDescription>
-                    Product type and stock settings
+                    {t("products.form.settings_description")}
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label>Product Type</Label>
+                <Label>{t("products.form.product_type")}</Label>
                 <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/30">
                   {type === "SERIALIZED" ? (
                     <Barcode className="h-5 w-5 text-primary" />
                   ) : (
                     <Boxes className="h-5 w-5 text-primary" />
                   )}
-                  <span className="font-medium">{type}</span>
+                  <span className="font-medium">
+                    {type === "SERIALIZED"
+                      ? t("products.form.serialized")
+                      : t("products.form.batch")}
+                  </span>
                   <Badge variant="secondary" className="ml-auto text-xs">
-                    Cannot change
+                    {t("products.form.cannot_change_type")}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Product type cannot be changed after creation
+                  {t("products.form.type_change_tip")}
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="minStock">Minimum Stock Level</Label>
+                <Label htmlFor="minStock">
+                  {t("products.form.min_stock_level")}
+                </Label>
                 <Input
                   id="minStock"
                   type="number"
@@ -533,7 +513,7 @@ export default function EditProductPage() {
                   className="bg-muted/50"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Alert when stock falls below this level
+                  {t("products.form.stock_alert_tip")}
                 </p>
               </div>
             </CardContent>
@@ -549,9 +529,9 @@ export default function EditProductPage() {
                   <Palette className="h-5 w-5 text-purple-500" />
                 </div>
                 <div>
-                  <CardTitle>Product Variants</CardTitle>
+                  <CardTitle>{t("products.form.variants_title")}</CardTitle>
                   <CardDescription>
-                    Manage product variants (colors, storage, etc.)
+                    {t("products.form.variants_description")}
                   </CardDescription>
                 </div>
               </div>
@@ -562,22 +542,19 @@ export default function EditProductPage() {
                 className="gap-2"
               >
                 <Plus className="h-4 w-4" />
-                Add Variant
+                {t("products.form.add_variant")}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Info Banner */}
             <div className="flex items-start gap-3 rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
               <Smartphone className="h-5 w-5 text-blue-500 mt-0.5" />
               <div className="space-y-1">
                 <p className="text-sm font-medium text-blue-500">
-                  Managing Variants
+                  {t("products.form.mobile_preset_tip")}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Edit existing variants or add new ones. Deleted variants will
-                  be removed when you save. SKU for existing variants cannot be
-                  changed.
+                  {t("products.form.mobile_preset_description")}
                 </p>
               </div>
             </div>
@@ -589,11 +566,10 @@ export default function EditProductPage() {
                   variant.isDeleted
                     ? "border-destructive/50 bg-destructive/5 opacity-60"
                     : variant.isNew
-                    ? "border-green-500/50 bg-green-500/5"
-                    : "border-border bg-muted/30"
+                      ? "border-green-500/50 bg-green-500/5"
+                      : "border-border bg-muted/30"
                 }`}
               >
-                {/* Delete/Restore Button */}
                 <div className="absolute right-2 top-2">
                   {variant.isDeleted ? (
                     <Button
@@ -603,7 +579,7 @@ export default function EditProductPage() {
                       className="h-8 text-xs gap-1"
                       onClick={() => restoreVariant(vIndex)}
                     >
-                      Restore
+                      {t("products.form.restore")}
                     </Button>
                   ) : (
                     <Button
@@ -624,16 +600,18 @@ export default function EditProductPage() {
                       variant.isDeleted
                         ? "destructive"
                         : variant.isNew
-                        ? "default"
-                        : "secondary"
+                          ? "default"
+                          : "secondary"
                     }
                     className="text-xs"
                   >
                     {variant.isDeleted
-                      ? "Will be deleted"
+                      ? t("products.form.will_be_deleted")
                       : variant.isNew
-                      ? "New Variant"
-                      : `Variant ${vIndex + 1}`}
+                        ? t("products.form.new_variant")
+                        : t("products.form.variant_index", {
+                            index: vIndex + 1,
+                          })}
                   </Badge>
                 </div>
 
@@ -641,12 +619,12 @@ export default function EditProductPage() {
                   <div className="space-y-2">
                     <Label className="text-sm">
                       <Barcode className="inline h-3.5 w-3.5 mr-1.5" />
-                      SKU
+                      {t("products.form.sku")}
                     </Label>
                     {variant.isNew ? (
                       <div className="flex items-center h-9 px-3 rounded-md border border-input bg-muted/30 text-sm font-mono text-muted-foreground">
                         <span className="italic text-xs">
-                          Auto-generated on save
+                          {t("products.form.sku_on_save")}
                         </span>
                       </div>
                     ) : (
@@ -656,12 +634,28 @@ export default function EditProductPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm">Variant Name *</Label>
+                    <Label className="text-sm">
+                      {t("products.form.variant_name")} *
+                    </Label>
                     <Input
-                      placeholder="e.g., Black 128GB"
+                      placeholder={t("products.form.variant_name_placeholder")}
                       value={variant.name}
                       onChange={(e) =>
                         updateVariant(vIndex, "name", e.target.value)
+                      }
+                      className="bg-background"
+                      disabled={variant.isDeleted}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm">
+                      {t("products.form.model_code")}
+                    </Label>
+                    <Input
+                      placeholder={t("products.form.model_code_placeholder")}
+                      value={variant.modelCode}
+                      onChange={(e) =>
+                        updateVariant(vIndex, "modelCode", e.target.value)
                       }
                       className="bg-background"
                       disabled={variant.isDeleted}
@@ -674,7 +668,7 @@ export default function EditProductPage() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm text-muted-foreground">
-                        Specifications
+                        {t("products.form.specifications")}
                       </Label>
                       <Button
                         type="button"
@@ -684,21 +678,23 @@ export default function EditProductPage() {
                         className="h-7 text-xs gap-1"
                       >
                         <Plus className="h-3 w-3" />
-                        Add Spec
+                        {t("products.form.add_spec")}
                       </Button>
                     </div>
                     <div className="space-y-2">
                       {variant.specs.map((spec, sIndex) => {
-                        // Check if current key is in presets
                         const isPresetKey = MOBILE_SPEC_PRESETS.some(
-                          (p) => p.key === spec.key
+                          (p) => p.key === spec.key,
                         );
-                        // Get all preset keys plus current custom key if not in presets
                         const selectOptions =
                           isPresetKey || !spec.key
                             ? MOBILE_SPEC_PRESETS
                             : [
-                                { key: spec.key, placeholder: "Custom spec" },
+                                {
+                                  key: spec.key,
+                                  placeholderKey:
+                                    "products.form.spec_val_placeholder",
+                                },
                                 ...MOBILE_SPEC_PRESETS,
                               ];
 
@@ -711,8 +707,10 @@ export default function EditProductPage() {
                               }
                             >
                               <SelectTrigger className="bg-background w-40">
-                                <SelectValue placeholder="Select spec">
-                                  {spec.key || "Select spec"}
+                                <SelectValue
+                                  placeholder={t("products.form.select_spec")}
+                                >
+                                  {spec.key || t("products.form.select_spec")}
                                 </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
@@ -727,14 +725,16 @@ export default function EditProductPage() {
                               </SelectContent>
                             </Select>
                             <Input
-                              placeholder={getSpecPlaceholder(spec.key)}
+                              placeholder={t(
+                                "products.form.spec_val_placeholder",
+                              )}
                               value={spec.value}
                               onChange={(e) =>
                                 updateSpec(
                                   vIndex,
                                   sIndex,
                                   "value",
-                                  e.target.value
+                                  e.target.value,
                                 )
                               }
                               className="bg-background flex-1"
@@ -762,7 +762,7 @@ export default function EditProductPage() {
             {variants.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <Palette className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No variants yet. Click "Add Variant" to create one.</p>
+                <p>{t("products.form.no_variants_yet")}</p>
               </div>
             )}
           </CardContent>
@@ -775,7 +775,7 @@ export default function EditProductPage() {
             variant="outline"
             onClick={() => navigate("/products")}
           >
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             type="submit"
@@ -785,12 +785,12 @@ export default function EditProductPage() {
             {isSubmitting ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
+                {t("products.form.saving")}
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                Save Changes
+                {t("common.save")}
               </>
             )}
           </Button>

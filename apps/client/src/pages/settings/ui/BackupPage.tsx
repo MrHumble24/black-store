@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/shared/ui/button";
 import {
   Card,
@@ -33,6 +34,7 @@ interface BackupFile {
 }
 
 export function BackupPage() {
+  const { t } = useTranslation();
   const [isTriggering, setIsTriggering] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -52,11 +54,11 @@ export function BackupPage() {
     setIsTriggering(true);
     try {
       await api.post("/backup/trigger");
-      toast.success("Backup started successfully! Check Telegram.");
+      toast.success(t("settings.backup.success_start"));
       // Ideally we would want to refetch after some time, but backup takes time.
       setTimeout(() => refetch(), 5000);
     } catch (error) {
-      toast.error("Failed to trigger backup.");
+      toast.error(t("settings.backup.error_start"));
       console.error(error);
     } finally {
       setIsTriggering(false);
@@ -68,11 +70,7 @@ export function BackupPage() {
     if (!file) return;
 
     // Confirm action
-    if (
-      !window.confirm(
-        "Are you sure you want to restore? This will OVERWRITE your current database with the backup data."
-      )
-    ) {
+    if (!window.confirm(t("settings.backup.confirm_restore"))) {
       return;
     }
 
@@ -86,11 +84,9 @@ export function BackupPage() {
       await api.post("/backup/restore", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      toast.success(
-        "Database successfully restored! You may need to refresh the page."
-      );
+      toast.success(t("settings.backup.success_restore"));
     } catch (error) {
-      toast.error("Failed to restore backup.");
+      toast.error(t("settings.backup.error_restore"));
       console.error(error);
     } finally {
       setIsRestoring(false);
@@ -121,16 +117,18 @@ export function BackupPage() {
       })
       .catch((error) => {
         console.error("Download failed", error);
-        toast.error("Failed to download backup file.");
+        toast.error(t("settings.backup.error_download"));
       });
   };
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">System Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {t("settings.backup.title")}
+        </h1>
         <p className="text-muted-foreground">
-          Manage system-level configurations and maintenance.
+          {t("settings.backup.description")}
         </p>
       </div>
 
@@ -139,12 +137,10 @@ export function BackupPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-6 w-6 text-primary" />
-              <CardTitle>System Backup</CardTitle>
+              <CardTitle>{t("settings.backup.system_backup")}</CardTitle>
             </div>
             <CardDescription>
-              Manually trigger a system backup. This will create a database dump
-              and an Excel export, zip them, save to server, and send to
-              Telegram.
+              {t("settings.backup.backup_desc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -154,7 +150,9 @@ export function BackupPage() {
               className="gap-2"
             >
               <CloudUpload className="h-4 w-4" />
-              {isTriggering ? "Backing up..." : "Trigger Backup Now"}
+              {isTriggering
+                ? t("settings.backup.backing_up")
+                : t("settings.backup.trigger_btn")}
             </Button>
           </CardContent>
         </Card>
@@ -163,12 +161,12 @@ export function BackupPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <RotateCcw className="h-6 w-6 text-red-500" />
-              <CardTitle>System Restore</CardTitle>
+              <CardTitle>{t("settings.backup.system_restore")}</CardTitle>
             </div>
             <CardDescription>
-              Restore the database from a backup file.{" "}
+              {t("settings.backup.restore_desc")}{" "}
               <span className="font-bold text-red-500">
-                WARNING: This will overwrite the current database!
+                {t("settings.backup.restore_warning_title")}
               </span>
             </CardDescription>
           </CardHeader>
@@ -183,7 +181,9 @@ export function BackupPage() {
                 className="gap-2"
               >
                 <CloudUpload className="h-4 w-4" />
-                {isRestoring ? "Restoring..." : "Upload & Restore Backup"}
+                {isRestoring
+                  ? t("settings.backup.restoring")
+                  : t("settings.backup.upload_restore_btn")}
               </Button>
               <input
                 id="restore-input"
@@ -201,27 +201,31 @@ export function BackupPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <FileArchive className="h-6 w-6 text-secondary-foreground" />
-              <CardTitle>Backup History</CardTitle>
+              <CardTitle>{t("settings.backup.history_title")}</CardTitle>
             </div>
             <CardDescription>
-              Download previous system backups stored on the server.
+              {t("settings.backup.history_desc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-4">Loading backups...</div>
+              <div className="text-center py-4">
+                {t("settings.backup.loading")}
+              </div>
             ) : !backups || backups.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
-                No backups found.
+                {t("settings.backup.no_backups")}
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Filename</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t("settings.backup.table.filename")}</TableHead>
+                    <TableHead>{t("settings.backup.table.size")}</TableHead>
+                    <TableHead>{t("settings.backup.table.date")}</TableHead>
+                    <TableHead className="text-right">
+                      {t("settings.backup.table.actions")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -243,7 +247,7 @@ export function BackupPage() {
                           onClick={() => handleDownload(file.filename)}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          Download
+                          {t("settings.backup.download")}
                         </Button>
                       </TableCell>
                     </TableRow>

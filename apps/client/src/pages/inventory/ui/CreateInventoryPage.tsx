@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { inventoryQueries } from "@/entities/inventory";
 import { warehouseQueries } from "@/entities/warehouse";
 import { productQueries } from "@/entities/product";
@@ -42,6 +43,7 @@ import { BarcodeScanner } from "@/shared/ui/barcode-scanner";
 import { toast } from "sonner";
 
 export default function CreateInventoryPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const createMutation = inventoryQueries.useCreate();
 
@@ -66,7 +68,7 @@ export default function CreateInventoryPage() {
         productName: p.name,
         productType: p.type,
         label: `${p.name} - ${v.name} (${v.sku})`,
-      }))
+      })),
     ) || [];
 
   const handleCreate = () => {
@@ -84,23 +86,28 @@ export default function CreateInventoryPage() {
       },
       {
         onSuccess: () => navigate("/inventory"),
-      }
+      },
     );
   };
 
   const handleSkuScan = (sku: string) => {
     const variant = allVariants.find(
-      (v: any) => v.sku.toLowerCase() === sku.toLowerCase()
+      (v: any) => v.sku.toLowerCase() === sku.toLowerCase(),
     );
     if (variant) {
       setSelectedVariantId(String(variant.id));
-      toast.success(`Matched: ${variant.label}`, {
-        description: `SKU: ${variant.sku} identified.`,
-        duration: 3000,
-      });
+      toast.success(
+        t("inventory.create.toasts.matched", { label: variant.label }),
+        {
+          description: t("inventory.create.toasts.sku_identified", {
+            sku: variant.sku,
+          }),
+          duration: 3000,
+        },
+      );
     } else {
-      toast.error("Product Not Found", {
-        description: `No product matches SKU: ${sku}`,
+      toast.error(t("inventory.create.toasts.not_found"), {
+        description: t("inventory.create.toasts.no_match", { sku }),
         duration: 5000,
       });
     }
@@ -108,36 +115,38 @@ export default function CreateInventoryPage() {
 
   const handleSnScan = (sn: string) => {
     setSerialNumber(sn);
-    toast.info("Serial Number Captured", {
+    toast.info(t("inventory.create.toasts.sn_captured"), {
       description: `S/N: ${sn}`,
     });
   };
 
   const selectedVariant = allVariants.find(
-    (v: any) => String(v.id) === selectedVariantId
+    (v: any) => String(v.id) === selectedVariantId,
   );
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className=" mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Add Inventory</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          {t("inventory.create.title")}
+        </h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Inventory Details</CardTitle>
+          <CardTitle>{t("inventory.create.details_title")}</CardTitle>
           <CardDescription>
-            Manually add stock to a specific warehouse location.
+            {t("inventory.create.details_description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Product Variant Selection */}
           <div className="space-y-2 flex flex-col">
             <div className="flex justify-between items-center">
-              <Label>Product Variant</Label>
+              <Label>{t("inventory.create.product_variant")}</Label>
               <Button
                 variant="ghost"
                 size="sm"
@@ -145,7 +154,7 @@ export default function CreateInventoryPage() {
                 onClick={() => setIsSkuScannerOpen(true)}
               >
                 <ScanBarcode className="w-4 h-4 mr-2" />
-                Scan SKU
+                {t("inventory.create.scan_sku")}
               </Button>
             </div>
             <Popover open={open} onOpenChange={setOpen}>
@@ -158,15 +167,19 @@ export default function CreateInventoryPage() {
                 >
                   {selectedVariantId
                     ? selectedVariant?.label
-                    : "Select product variant..."}
+                    : t("inventory.create.select_variant")}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[400px] p-0 PopoverContent">
                 <Command className="w-full">
-                  <CommandInput placeholder="Search variants..." />
+                  <CommandInput
+                    placeholder={t("inventory.create.search_variants")}
+                  />
                   <CommandList>
-                    <CommandEmpty>No variant found.</CommandEmpty>
+                    <CommandEmpty>
+                      {t("inventory.create.no_variant")}
+                    </CommandEmpty>
                     <CommandGroup>
                       {allVariants.map((variant: any) => (
                         <CommandItem
@@ -182,7 +195,7 @@ export default function CreateInventoryPage() {
                               "mr-2 h-4 w-4",
                               selectedVariantId === String(variant.id)
                                 ? "opacity-100"
-                                : "opacity-0"
+                                : "opacity-0",
                             )}
                           />
                           {variant.label}
@@ -200,7 +213,7 @@ export default function CreateInventoryPage() {
                 </span>
                 {selectedVariant.productType === "SERIALIZED" && (
                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 px-1.5 py-0.5 bg-blue-50 rounded">
-                    Serialized
+                    {t("products.type_serialized")}
                   </span>
                 )}
               </div>
@@ -210,10 +223,14 @@ export default function CreateInventoryPage() {
           <div className="grid grid-cols-2 gap-4">
             {/* Warehouse */}
             <div className="space-y-2">
-              <Label htmlFor="warehouse">Warehouse</Label>
+              <Label htmlFor="warehouse">
+                {t("inventory.create.warehouse")}
+              </Label>
               <Select value={warehouseId} onValueChange={setWarehouseId}>
                 <SelectTrigger id="warehouse">
-                  <SelectValue placeholder="Select warehouse" />
+                  <SelectValue
+                    placeholder={t("inventory.create.select_warehouse")}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {warehouses?.map((w: any) => (
@@ -227,15 +244,21 @@ export default function CreateInventoryPage() {
 
             {/* Status */}
             <div className="space-y-2">
-              <Label htmlFor="status">Initial Status</Label>
+              <Label htmlFor="status">{t("inventory.create.status")}</Label>
               <Select value={status} onValueChange={setStatus}>
                 <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder={t("common.select_placeholder")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="AVAILABLE">Available</SelectItem>
-                  <SelectItem value="RESERVED">Reserved</SelectItem>
-                  <SelectItem value="DEFECTIVE">Defective</SelectItem>
+                  <SelectItem value="AVAILABLE">
+                    {t("inventory.filters.available")}
+                  </SelectItem>
+                  <SelectItem value="RESERVED">
+                    {t("inventory.filters.reserved")}
+                  </SelectItem>
+                  <SelectItem value="DEFECTIVE">
+                    {t("inventory.filters.defective")}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -244,7 +267,7 @@ export default function CreateInventoryPage() {
           <div className="grid grid-cols-2 gap-4">
             {/* Quantity */}
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
+              <Label htmlFor="quantity">{t("inventory.create.quantity")}</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -256,7 +279,9 @@ export default function CreateInventoryPage() {
 
             {/* Cost Price */}
             <div className="space-y-2">
-              <Label htmlFor="costPrice">Cost Price (per unit)</Label>
+              <Label htmlFor="costPrice">
+                {t("inventory.create.cost_price")}
+              </Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   $
@@ -277,7 +302,9 @@ export default function CreateInventoryPage() {
             {/* Serial Number */}
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <Label htmlFor="serialNumber">Serial Number</Label>
+                <Label htmlFor="serialNumber">
+                  {t("inventory.create.serial_number")}
+                </Label>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -285,12 +312,12 @@ export default function CreateInventoryPage() {
                   onClick={() => setIsSnScannerOpen(true)}
                 >
                   <QrCode className="w-4 h-4 mr-2" />
-                  Scan S/N
+                  {t("inventory.create.scan_sn")}
                 </Button>
               </div>
               <Input
                 id="serialNumber"
-                placeholder="Unique key for SERIALIZED items"
+                placeholder={t("inventory.create.sn_placeholder")}
                 value={serialNumber}
                 onChange={(e) => setSerialNumber(e.target.value)}
               />
@@ -298,10 +325,12 @@ export default function CreateInventoryPage() {
 
             {/* Batch Number */}
             <div className="space-y-2">
-              <Label htmlFor="batchNumber">Batch Number (Optional)</Label>
+              <Label htmlFor="batchNumber">
+                {t("inventory.create.batch_number")}
+              </Label>
               <Input
                 id="batchNumber"
-                placeholder="Tracking for BATCH items"
+                placeholder={t("inventory.create.batch_placeholder")}
                 value={batchNumber}
                 onChange={(e) => setBatchNumber(e.target.value)}
               />
@@ -314,7 +343,7 @@ export default function CreateInventoryPage() {
               className="flex-1"
               onClick={() => navigate("/inventory")}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               className="flex-1"
@@ -329,7 +358,7 @@ export default function CreateInventoryPage() {
               {createMutation.isPending && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
-              Create Entry
+              {t("inventory.create.submit")}
             </Button>
           </div>
         </CardContent>

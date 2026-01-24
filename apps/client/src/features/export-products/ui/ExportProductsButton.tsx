@@ -61,7 +61,6 @@ export function ExportProductsButton({
     const exportData = products.flatMap((product) => {
       const baseData = {
         productName: product.name,
-        modelCode: product.modelCode || "",
         description: product.description || "",
         type: product.type,
         category: product.category.name,
@@ -83,6 +82,7 @@ export function ExportProductsButton({
 
           return {
             ...baseData,
+            modelCode: variant.modelCode || "",
             variantSKU: variant.sku,
             variantName: variant.name,
             totalStock: variant.totalStock || 0,

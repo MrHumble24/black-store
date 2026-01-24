@@ -129,7 +129,6 @@ model Category {
 model Product {
   id          Int         @id @default(autoincrement())
   name        String
-  modelCode   String?
   description String?
   type        ProductType
   minStock    Int         @default(5)
@@ -158,6 +157,7 @@ model ProductVariant {
   productId Int
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   sku       String   @unique
+  modelCode String?  @unique
   name      String // e.g., "iPhone 15 Black 128GB"
   specs     Json // {color: "Black", storage: "128GB", ram: "8GB"}
   isActive  Boolean  @default(true)
@@ -179,6 +179,7 @@ model InventoryItem {
   warehouseId  Int
   warehouse    Warehouse      @relation(fields: [warehouseId], references: [id])
   serialNumber String?
+  batchNumber  String?
   quantity     Int            @default(1)
   costPrice    Decimal        @db.Decimal(10, 2)
   status       ItemStatus     @default(AVAILABLE)
@@ -219,17 +220,16 @@ enum PurchaseType {
 }
 
 model Purchase {
-  id          Int          @id @default(autoincrement())
-  type        PurchaseType @default(PROVIDER)
-  providerId  Int?
-  provider    Provider?    @relation(fields: [providerId], references: [id])
-  userId      Int
-  user        User         @relation(fields: [userId], references: [id])
-  referenceNo String?
-  sellerInfo  String?      @db.Text
-  totalCost   Decimal      @db.Decimal(10, 2)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id         Int          @id @default(autoincrement())
+  type       PurchaseType @default(PROVIDER)
+  providerId Int?
+  provider   Provider?    @relation(fields: [providerId], references: [id])
+  userId     Int
+  user       User         @relation(fields: [userId], references: [id])
+  sellerInfo String?      @db.Text
+  totalCost  Decimal      @db.Decimal(10, 2)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   items InventoryItem[]
 
@@ -275,6 +275,7 @@ model OrderItem {
   variant     ProductVariant @relation(fields: [variantId], references: [id])
   quantity    Int
   sellPrice   Decimal        @db.Decimal(10, 2)
+  costPrice   Decimal        @default(0) @db.Decimal(10, 2)
   warrantyEnd DateTime?
 
   inventoryItem InventoryItem?

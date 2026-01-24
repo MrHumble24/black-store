@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { purchaseQueries } from "@/entities/purchase";
 import { Button } from "@/shared/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/shared/ui/card";
@@ -11,7 +12,6 @@ import {
   Loader2,
   ShieldCheck,
   Truck,
-  Hash,
   Warehouse as WarehouseIcon,
 } from "lucide-react";
 import { Badge } from "@/shared/ui/badge";
@@ -19,6 +19,7 @@ import { format } from "date-fns";
 import { Separator } from "@/shared/ui/separator";
 
 export default function PurchaseDetailsPage() {
+  const { t } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: purchase, isLoading } = purchaseQueries.useOne(Number(id));
@@ -28,7 +29,7 @@ export default function PurchaseDetailsPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
         <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">
-          Fetching supplier invoice...
+          {t("purchases.decrypting")}
         </p>
       </div>
     );
@@ -41,18 +42,17 @@ export default function PurchaseDetailsPage() {
           <Truck className="w-8 h-8 text-red-500" />
         </div>
         <h2 className="text-xl font-black text-foreground uppercase tracking-tight">
-          Invoice Not Found
+          {t("purchases.details.not_found")}
         </h2>
         <p className="text-muted-foreground/60 text-sm max-w-xs">
-          The purchase record you are looking for might have been archived or
-          deleted.
+          {t("purchases.details.not_found_desc")}
         </p>
         <Button
           onClick={() => navigate("/purchases")}
           variant="outline"
           className="mt-2 border-border bg-card text-muted-foreground"
         >
-          Back to Purchases
+          {t("purchases.details.back")}
         </Button>
       </div>
     );
@@ -74,13 +74,13 @@ export default function PurchaseDetailsPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-black text-foreground tracking-tight uppercase italic">
-                Purchase Invoice
+                {t("purchases.details.title")}
               </h1>
               <Badge
                 variant="outline"
                 className="border-emerald-500/30 bg-emerald-500/5 text-emerald-500 uppercase tracking-widest text-[10px] h-5 font-black"
               >
-                Processed
+                {t("purchases.details.processed")}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground/60 font-bold tracking-widest uppercase">
@@ -96,7 +96,7 @@ export default function PurchaseDetailsPage() {
             onClick={() => window.print()}
           >
             <Printer className="w-4 h-4 mr-2" />
-            Print Record
+            {t("purchases.details.print")}
           </Button>
         </div>
       </div>
@@ -107,7 +107,7 @@ export default function PurchaseDetailsPage() {
           <Card className="bg-card border-border overflow-hidden shadow-2xl">
             <CardHeader className="bg-muted/30 border-b border-border pb-4">
               <CardTitle className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">
-                General Info
+                {t("purchases.details.general_info")}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-5">
@@ -117,24 +117,10 @@ export default function PurchaseDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-0.5">
-                    Supplier
+                    {t("purchases.details.supplier_label")}
                   </p>
                   <p className="text-sm font-bold text-foreground">
                     {purchase.provider?.name || "Unknown"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="mt-1 w-8 h-8 rounded-lg bg-blue-600/10 flex items-center justify-center border border-blue-500/10 shrink-0">
-                  <Hash className="w-4 h-4 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-0.5">
-                    Reference No.
-                  </p>
-                  <p className="text-sm font-mono text-foreground uppercase">
-                    {purchase.referenceNo || "N/A"}
                   </p>
                 </div>
               </div>
@@ -145,7 +131,7 @@ export default function PurchaseDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-0.5">
-                    Entry Date
+                    {t("purchases.details.entry_date")}
                   </p>
                   <p className="text-sm font-bold text-foreground">
                     {format(new Date(purchase.createdAt), "MMMM d, yyyy")}
@@ -162,7 +148,7 @@ export default function PurchaseDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-0.5">
-                    Receiver
+                    {t("purchases.details.receiver")}
                   </p>
                   <p className="text-sm font-bold text-foreground">
                     {purchase.user?.name || "System Admin"}
@@ -178,14 +164,14 @@ export default function PurchaseDetailsPage() {
             </div>
             <CardContent className="p-6">
               <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">
-                Total Amount Paid
+                {t("purchases.details.total_amount_paid")}
               </p>
               <h2 className="text-4xl font-black text-foreground tracking-tighter">
                 ${Number(purchase.totalCost).toLocaleString()}
               </h2>
               <div className="flex items-center gap-1.5 mt-2 text-emerald-500/60 uppercase text-[10px] font-black">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                Stock Balance Updated
+                {t("purchases.details.stock_balance_updated")}
               </div>
             </CardContent>
           </Card>
@@ -197,14 +183,14 @@ export default function PurchaseDetailsPage() {
             <CardHeader className="bg-muted/30 border-b border-border pb-4 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xs font-black text-muted-foreground/60 uppercase tracking-widest">
-                  Item Manifest
+                  {t("purchases.details.item_manifest")}
                 </CardTitle>
               </div>
               <Badge
                 variant="outline"
                 className="text-[9px] h-5 px-2 border-border text-muted-foreground/60 uppercase font-black"
               >
-                {purchase.items?.length || 0} ITEMS
+                {purchase.items?.length || 0} {t("purchases.details.qty")}
               </Badge>
             </CardHeader>
             <CardContent className="p-0">
@@ -213,16 +199,16 @@ export default function PurchaseDetailsPage() {
                   <thead className="bg-muted/20 border-b border-border">
                     <tr>
                       <th className="px-6 py-4 text-[10px] font-black uppercase text-muted-foreground/40 tracking-wider">
-                        Product Description
+                        {t("purchases.details.product_description")}
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase text-muted-foreground/40 tracking-wider">
-                        Unit Cost
+                        {t("purchases.details.unit_cost")}
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase text-muted-foreground/40 tracking-wider">
-                        Qty
+                        {t("purchases.details.qty")}
                       </th>
                       <th className="px-6 py-4 text-[10px] font-black uppercase text-muted-foreground/40 tracking-wider text-right">
-                        Subtotal
+                        {t("purchases.details.subtotal")}
                       </th>
                     </tr>
                   </thead>
@@ -248,6 +234,14 @@ export default function PurchaseDetailsPage() {
                                   className="bg-blue-500/5 text-blue-500 border-blue-500/20 text-[9px] h-4 px-1 font-mono uppercase"
                                 >
                                   SN: {item.serialNumber}
+                                </Badge>
+                              )}
+                              {item.batchNumber && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-purple-500/5 text-purple-500 border-purple-500/20 text-[9px] h-4 px-1 font-mono uppercase"
+                                >
+                                  Batch: {item.batchNumber}
                                 </Badge>
                               )}
                             </div>
@@ -277,7 +271,7 @@ export default function PurchaseDetailsPage() {
                 <div className="max-w-[200px] ml-auto space-y-3">
                   <div className="flex justify-between items-center text-muted-foreground/60 text-xs">
                     <span className="font-bold uppercase tracking-widest text-[10px]">
-                      Subtotal Cost
+                      {t("purchases.details.subtotal_cost")}
                     </span>
                     <span className="font-black text-foreground/80">
                       ${Number(purchase.totalCost).toLocaleString()}
@@ -285,14 +279,14 @@ export default function PurchaseDetailsPage() {
                   </div>
                   <div className="flex justify-between items-center text-muted-foreground/60 text-xs">
                     <span className="font-bold uppercase tracking-widest text-[10px]">
-                      Taxes (0%)
+                      {t("purchases.details.taxes")} (0%)
                     </span>
                     <span className="font-black text-foreground/80">$0.00</span>
                   </div>
                   <Separator className="bg-border" />
                   <div className="flex justify-between items-center pt-1">
                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">
-                      Grand Total
+                      {t("purchases.details.grand_total")}
                     </span>
                     <span className="text-xl font-black text-foreground tracking-tighter">
                       ${Number(purchase.totalCost).toLocaleString()}
@@ -311,10 +305,10 @@ export default function PurchaseDetailsPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-0.5">
-                    Storage Location
+                    {t("purchases.details.storage_location")}
                   </p>
                   <p className="text-sm font-bold text-foreground uppercase italic">
-                    These items were registered to the main inventory system.
+                    {t("purchases.details.storage_desc")}
                   </p>
                 </div>
               </div>

@@ -28,4 +28,9 @@ export class SalesController {
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
+
+  @Post(':id/void')
+  void(@Param('id', ParseIntPipe) id: number, @Request() req: any) {
+    return this.service.remove(id, req.user.sub);
+  }
 }

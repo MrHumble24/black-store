@@ -139,7 +139,7 @@ export class BackupService {
     const sanitizedUrl = urlObj.toString();
 
     // Command to dump the specific database
-    // Assuming pg_dump is in the path. Using --clean to include DROP commands.
+    // Note: We don't use --clean here because the restore process drops and recreates the schema
     const command = `pg_dump "${sanitizedUrl}" -F p -f "${outputPath}"`;
 
     try {
@@ -306,24 +306,28 @@ export class BackupService {
     urlObj.search = '';
     const sanitizedUrl = urlObj.toString();
 
-    // Use psql to restore. Since the dump is plain text (-F p), psql is the correct tool.
-    // WARNING: This will overwrite existing data if the dump contains DROP statements (which we added via --clean/default?)
-    // Actually, pg_dump default doesn't include DROP DATABASE, but usually includes DROP TABLE if you use --clean.
-    // We should be careful. The current pg_dump command used above: `pg_dump ... -F p ...`
-    // It does NOT include --clean by default so it might fail on Duplicate Key or Existing Table errors.
-    // For a proper restore, we often want to wipe the schema or drop tables.
-    // Let's assume the user knows this is a destructive action.
-    // To make it robust, we should probably add --clean to the dump creation if we haven't already,
-    // OR we drop the public schema and recreate it before restoring.
-
-    // Changing dump creation to include --clean would be wise for next time, but for now let's hope the user is restoring to a matched state or empty.
-    // Actually, let's try to restore as is.
-
-    const command = `psql "${sanitizedUrl}" -f "${dumpFilePath}"`;
-
     try {
-      await execAsync(command);
+      // Step 1: Drop and recreate the public schema to ensure a clean slate
+      // This avoids foreign key constraint issues during restore
+      this.logger.log('Dropping and recreating public schema...');
+      const dropSchemaCommand = `psql "${sanitizedUrl}" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO public;"`;
+      await execAsync(dropSchemaCommand);
+
+      // Step 2: Restore from the dump file
+      // Using --set ON_ERROR_STOP=1 to stop on first error for better debugging
+      this.logger.log('Restoring data from dump file...');
+      const restoreCommand = `psql "${sanitizedUrl}" --set ON_ERROR_STOP=1 -f "${dumpFilePath}"`;
+      const { stdout, stderr } = await execAsync(restoreCommand);
+
+      if (stderr) {
+        this.logger.warn(`psql stderr output: ${stderr}`);
+      }
+      if (stdout) {
+        this.logger.log(`psql completed: ${stdout.slice(0, 200)}...`);
+      }
     } catch (error) {
+      this.logger.error(`Restore command output: ${error.stdout || ''}`);
+      this.logger.error(`Restore command stderr: ${error.stderr || ''}`);
       throw new Error(`psql restore failed: ${error.message}`);
     }
   }

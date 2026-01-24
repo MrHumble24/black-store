@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import ReactMarkdown from "react-markdown";
 import { reportQueries } from "@/entities/report";
 import {
@@ -29,6 +30,7 @@ import {
 } from "lucide-react";
 
 const AiInsights = ({ data }: { data: any }) => {
+  const { t } = useTranslation();
   const [insight, setInsight] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -56,15 +58,19 @@ const AiInsights = ({ data }: { data: any }) => {
       <CardHeader className="pb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-          <CardTitle className="text-lg">AI Business Insights</CardTitle>
+          <CardTitle className="text-lg">
+            {t("dashboard.ai_insights_title")}
+          </CardTitle>
         </div>
-        <CardDescription>Powered by Qwen3-Coder Local AI</CardDescription>
+        <CardDescription>
+          {t("dashboard.ai_insights_description")}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-4">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Analyzing your business data...</span>
+            <span>{t("common.analyzing_data")}</span>
           </div>
         ) : insight ? (
           <div className="text-sm leading-relaxed text-foreground/80">
@@ -93,9 +99,7 @@ const AiInsights = ({ data }: { data: any }) => {
             </ReactMarkdown>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No insights available right now.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("common.no_data")}</p>
         )}
       </CardContent>
     </Card>
@@ -103,6 +107,7 @@ const AiInsights = ({ data }: { data: any }) => {
 };
 
 export default function DashboardPage() {
+  const { t } = useTranslation();
   const { data, isLoading } = reportQueries.useDashboard();
 
   if (isLoading) {
@@ -119,28 +124,28 @@ export default function DashboardPage() {
 
   const stats = [
     {
-      title: "Today's Revenue",
+      title: t("dashboard.revenue"),
       value: `$${Number(data?.todayRevenue || 0).toLocaleString()}`,
       icon: DollarSign,
       color: "text-green-500",
       bg: "bg-green-500/10",
     },
     {
-      title: "Today's Orders",
+      title: t("dashboard.orders"),
       value: data?.todayOrders || 0,
       icon: ShoppingCart,
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
     {
-      title: "Low Stock Items",
+      title: t("dashboard.low_stock"),
       value: (data?.lowStockItems as any[])?.length || 0,
       icon: AlertTriangle,
       color: "text-amber-500",
       bg: "bg-amber-500/10",
     },
     {
-      title: "Pending Returns",
+      title: t("dashboard.pending_returns"),
       value: data?.pendingReturns || 0,
       icon: RotateCcw,
       color: "text-red-500",
@@ -152,15 +157,22 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Here's what's happening today.
+          <h1 className="text-3xl font-black italic tracking-tighter uppercase text-foreground">
+            {t("dashboard.title")}
+          </h1>
+          <p className="text-muted-foreground text-sm font-medium">
+            {t("dashboard.subtitle")}
           </p>
         </div>
-        <Badge variant="outline" className="gap-1.5">
-          <TrendingUp className="h-3 w-3" />
-          Live
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge
+            variant="outline"
+            className="gap-1.5 h-7 font-black tracking-widest uppercase text-[10px]"
+          >
+            <TrendingUp className="h-3 w-3 text-emerald-500" />
+            {t("common.live_sync_active")}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -186,15 +198,17 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border bg-card shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg">Recent Sales</CardTitle>
+            <CardTitle className="text-lg">
+              {t("dashboard.recent_sales")}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead>Invoice</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Seller</TableHead>
+                  <TableHead>{t("dashboard.invoice")}</TableHead>
+                  <TableHead>{t("dashboard.amount")}</TableHead>
+                  <TableHead>{t("dashboard.seller")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -216,7 +230,7 @@ export default function DashboardPage() {
                       colSpan={3}
                       className="text-center text-muted-foreground py-8"
                     >
-                      No sales today
+                      {t("common.no_data")}
                     </TableCell>
                   </TableRow>
                 )}
@@ -229,16 +243,16 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              Low Stock Alert
+              {t("dashboard.alert_stock")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead>Product</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead>Min</TableHead>
+                  <TableHead>{t("dashboard.product")}</TableHead>
+                  <TableHead>{t("dashboard.stock")}</TableHead>
+                  <TableHead>{t("dashboard.min")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -262,7 +276,7 @@ export default function DashboardPage() {
                       colSpan={3}
                       className="text-center text-muted-foreground py-8"
                     >
-                      All items in stock
+                      {t("common.no_data")}
                     </TableCell>
                   </TableRow>
                 )}

@@ -9,16 +9,17 @@ export class ReportsService {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    const [sales, salesByDay, topVariants, topSellers] = await Promise.all([
-      // Total sales
-      this.prisma.sale.aggregate({
-        where: { createdAt: { gte: start, lte: end } },
-        _sum: { totalAmount: true },
-        _count: true,
-      }),
+    const [sales, salesByDay, topVariants, topSellers, processedReturns] =
+      await Promise.all([
+        // Total sales
+        this.prisma.sale.aggregate({
+          where: { createdAt: { gte: start, lte: end } },
+          _sum: { totalAmount: true },
+          _count: true,
+        }),
 
-      // Sales by day
-      this.prisma.$queryRaw`
+        // Sales by day
+        this.prisma.$queryRaw`
         SELECT DATE("createdAt") as date, SUM("totalAmount") as total, COUNT(*) as count
         FROM sales
         WHERE "createdAt" >= ${start} AND "createdAt" <= ${end}
@@ -26,25 +27,35 @@ export class ReportsService {
         ORDER BY date
       `,
 
-      // Top selling variants
-      this.prisma.orderItem.groupBy({
-        by: ['variantId'],
-        where: { sale: { createdAt: { gte: start, lte: end } } },
-        _sum: { quantity: true, sellPrice: true },
-        orderBy: { _sum: { quantity: 'desc' } },
-        take: 10,
-      }),
+        // Top selling variants
+        this.prisma.orderItem.groupBy({
+          by: ['variantId'],
+          where: { sale: { createdAt: { gte: start, lte: end } } },
+          _sum: { quantity: true },
+          orderBy: { _sum: { quantity: 'desc' } },
+          take: 10,
+        }),
 
-      // Top sellers (users)
-      this.prisma.sale.groupBy({
-        by: ['userId'],
-        where: { createdAt: { gte: start, lte: end } },
-        _sum: { totalAmount: true },
-        _count: true,
-        orderBy: { _sum: { totalAmount: 'desc' } },
-        take: 5,
-      }),
-    ]);
+        // Top sellers (users)
+        this.prisma.sale.groupBy({
+          by: ['userId'],
+          where: { createdAt: { gte: start, lte: end } },
+          _sum: { totalAmount: true },
+          _count: true,
+          orderBy: { _sum: { totalAmount: 'desc' } },
+          take: 5,
+        }),
+
+        // Total refunds from processed returns (APPROVED, RESTOCKED, DISPOSED)
+        this.prisma.return.aggregate({
+          where: {
+            updatedAt: { gte: start, lte: end },
+            status: { in: ['APPROVED', 'RESTOCKED', 'DISPOSED'] },
+          },
+          _sum: { refundAmount: true },
+          _count: true,
+        }),
+      ]);
 
     // Enrich top variants with names
     const variantIds = topVariants.map((v) => v.variantId);
@@ -59,6 +70,26 @@ export class ReportsService {
     });
     const variantMap = new Map(variants.map((v) => [v.id, v]));
 
+    // Top variants with real revenue using raw SQL for accuracy (sellPrice * quantity)
+    const topProductsRaw = await this.prisma.$queryRaw<
+      {
+        variantId: number;
+        quantitySold: number;
+        revenue: number;
+      }[]
+    >`
+      SELECT 
+        "variantId", 
+        SUM(quantity) as "quantitySold", 
+        SUM(quantity * "sellPrice") as revenue
+      FROM order_items oi
+      JOIN sales s ON oi."saleId" = s.id
+      WHERE s."createdAt" >= ${start} AND s."createdAt" <= ${end}
+      GROUP BY "variantId"
+      ORDER BY revenue DESC
+      LIMIT 10
+    `;
+
     // Enrich sellers with names
     const userIds = topSellers.map((s) => s.userId);
     const users = await this.prisma.user.findMany({
@@ -67,17 +98,29 @@ export class ReportsService {
     });
     const userMap = new Map(users.map((u) => [u.id, u]));
 
+    // Calculate net revenue (total sales minus refunds)
+    const grossRevenue = Number(sales._sum.totalAmount) || 0;
+    const totalRefunds = Number(processedReturns._sum.refundAmount) || 0;
+    const netRevenue = grossRevenue - totalRefunds;
+
     return {
-      totalRevenue: sales._sum.totalAmount || 0,
+      totalRevenue: netRevenue,
+      grossRevenue,
+      totalRefunds,
+      refundCount: processedReturns._count,
       totalOrders: sales._count,
-      averageOrderValue:
-        sales._count > 0 ? Number(sales._sum.totalAmount) / sales._count : 0,
+      averageOrderValue: sales._count > 0 ? grossRevenue / sales._count : 0,
       salesByDay,
-      topProducts: topVariants.map((v) => ({
-        ...variantMap.get(v.variantId),
-        quantitySold: v._sum.quantity,
-        revenue: v._sum.sellPrice,
-      })),
+      topProducts: topProductsRaw.map((v) => {
+        const variant = variantMap.get(v.variantId);
+        return {
+          productName: variant?.product?.name || 'Unknown',
+          name: variant?.name || '',
+          sku: variant?.sku || '',
+          quantitySold: Number(v.quantitySold),
+          revenue: Number(v.revenue),
+        };
+      }),
       topSellers: topSellers.map((s) => ({
         ...userMap.get(s.userId),
         totalSales: s._sum.totalAmount,
@@ -127,33 +170,64 @@ export class ReportsService {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    const revenue = await this.prisma.sale.aggregate({
-      where: { createdAt: { gte: start, lte: end } },
-      _sum: { totalAmount: true },
-    });
+    const [revenue, cogs, expenses, processedReturns, restockedReturns] =
+      await Promise.all([
+        this.prisma.sale.aggregate({
+          where: { createdAt: { gte: start, lte: end } },
+          _sum: { totalAmount: true },
+        }),
 
-    const cogs = await this.prisma.$queryRaw<{ cogs: number }[]>`
-      SELECT SUM(i."costPrice" * oi.quantity) as cogs
-      FROM order_items oi
-      JOIN sales s ON oi."saleId" = s.id
-      LEFT JOIN inventory_items i ON i."soldAtItemId" = oi.id
-      WHERE s."createdAt" >= ${start} AND s."createdAt" <= ${end}
-    `;
+        this.prisma.orderItem.aggregate({
+          where: { sale: { createdAt: { gte: start, lte: end } } },
+          _sum: { costPrice: true },
+        }),
 
-    const expenses = await this.prisma.expense.aggregate({
-      where: { expenseDate: { gte: start, lte: end } },
-      _sum: { amount: true },
-    });
+        this.prisma.expense.aggregate({
+          where: { expenseDate: { gte: start, lte: end } },
+          _sum: { amount: true },
+        }),
 
-    const totalRevenue = Number(revenue._sum.totalAmount) || 0;
-    const totalCogs = Number(cogs[0]?.cogs) || 0;
+        // Total refunds from processed returns
+        this.prisma.return.aggregate({
+          where: {
+            updatedAt: { gte: start, lte: end },
+            status: { in: ['APPROVED', 'RESTOCKED', 'DISPOSED'] },
+          },
+          _sum: { refundAmount: true },
+        }),
+
+        // COGS recovered from restocked items (need to subtract from COGS)
+        this.prisma.return.findMany({
+          where: {
+            updatedAt: { gte: start, lte: end },
+            status: 'RESTOCKED',
+          },
+          include: {
+            orderItem: { select: { costPrice: true } },
+          },
+        }),
+      ]);
+
+    // Calculate returned COGS (only for restocked items)
+    const returnedCogs = restockedReturns.reduce(
+      (sum, ret) => sum + Number(ret.orderItem.costPrice),
+      0,
+    );
+
+    const grossRevenue = Number(revenue._sum.totalAmount) || 0;
+    const totalRefunds = Number(processedReturns._sum.refundAmount) || 0;
+    const totalRevenue = grossRevenue - totalRefunds;
+    const totalCogs = (Number(cogs._sum?.costPrice) || 0) - returnedCogs;
     const totalExpenses = Number(expenses._sum.amount) || 0;
     const grossProfit = totalRevenue - totalCogs;
     const netProfit = grossProfit - totalExpenses;
 
     return {
       revenue: totalRevenue,
+      grossRevenue,
+      totalRefunds,
       cogs: totalCogs,
+      returnedCogs,
       grossProfit,
       expenses: totalExpenses,
       netProfit,
@@ -168,11 +242,21 @@ export class ReportsService {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const [todaySales, lowStock, pendingReturns, recentSales] =
+    const [todaySales, todayRefunds, lowStock, pendingReturns, recentSales] =
       await Promise.all([
         this.prisma.sale.aggregate({
           where: { createdAt: { gte: today, lt: tomorrow } },
           _sum: { totalAmount: true },
+          _count: true,
+        }),
+
+        // Today's refunds from processed returns
+        this.prisma.return.aggregate({
+          where: {
+            updatedAt: { gte: today, lt: tomorrow },
+            status: { in: ['APPROVED', 'RESTOCKED', 'DISPOSED'] },
+          },
+          _sum: { refundAmount: true },
           _count: true,
         }),
 
@@ -196,8 +280,15 @@ export class ReportsService {
         }),
       ]);
 
+    const grossRevenue = Number(todaySales._sum.totalAmount) || 0;
+    const refundAmount = Number(todayRefunds._sum.refundAmount) || 0;
+    const netRevenue = grossRevenue - refundAmount;
+
     return {
-      todayRevenue: todaySales._sum.totalAmount || 0,
+      todayRevenue: netRevenue,
+      todayGrossRevenue: grossRevenue,
+      todayRefunds: refundAmount,
+      todayRefundCount: todayRefunds._count,
       todayOrders: todaySales._count,
       lowStockItems: lowStock,
       pendingReturns,

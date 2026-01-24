@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { returnQueries } from "@/entities/return";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -26,12 +27,13 @@ import { format } from "date-fns";
 import { cn } from "@/shared/lib/utils";
 
 export default function ReturnsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   const { data: returns, isLoading } = returnQueries.useAll(
-    statusFilter === "all" ? undefined : statusFilter
+    statusFilter === "all" ? undefined : statusFilter,
   );
 
   const filteredReturns = useMemo(() => {
@@ -41,7 +43,7 @@ export default function ReturnsPage() {
         r.sale?.invoiceNo.toLowerCase().includes(search.toLowerCase()) ||
         r.orderItem?.variant?.product?.name
           .toLowerCase()
-          .includes(search.toLowerCase())
+          .includes(search.toLowerCase()),
     );
   }, [returns, search]);
 
@@ -49,11 +51,11 @@ export default function ReturnsPage() {
     if (!returns) return { pending: 0, approved: 0, totalRefund: 0 };
     const pending = returns.filter((r) => r.status === "PENDING").length;
     const approved = returns.filter(
-      (r) => r.status === "APPROVED" || r.status === "RESTOCKED"
+      (r) => r.status === "APPROVED" || r.status === "RESTOCKED",
     ).length;
     const totalRefund = returns.reduce(
       (acc, r) => acc + Number(r.refundAmount),
-      0
+      0,
     );
     return { pending, approved, totalRefund };
   }, [returns]);
@@ -63,7 +65,7 @@ export default function ReturnsPage() {
       <div className="flex flex-col items-center justify-center p-20 gap-4">
         <Loader2 className="w-10 h-10 animate-spin text-orange-500" />
         <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">
-          Loading Return Requests...
+          {t("returns.loading")}
         </p>
       </div>
     );
@@ -75,10 +77,10 @@ export default function ReturnsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight italic uppercase">
-            Returns Management
+            {t("returns.title")}
           </h1>
           <p className="text-sm text-muted-foreground font-medium">
-            Handle customer returns, refunds and restock operations
+            {t("returns.description")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -87,7 +89,7 @@ export default function ReturnsPage() {
             className="bg-orange-600 hover:bg-orange-700 text-white font-bold shadow-lg shadow-orange-600/10"
           >
             <RotateCcw className="w-4 h-4 mr-2" />
-            Process New Return
+            {t("returns.process_new")}
           </Button>
         </div>
       </div>
@@ -100,7 +102,7 @@ export default function ReturnsPage() {
           </div>
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-              Pending Items
+              {t("returns.stats.pending_items")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               {stats.pending}
@@ -113,7 +115,7 @@ export default function ReturnsPage() {
           </div>
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-              Finalized
+              {t("returns.stats.finalized")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               {stats.approved}
@@ -126,7 +128,7 @@ export default function ReturnsPage() {
           </div>
           <CardHeader className="pb-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-              Total Refunded
+              {t("returns.stats.total_refunded")}
             </CardDescription>
             <CardTitle className="text-2xl font-black text-foreground">
               ${stats.totalRefund.toLocaleString()}
@@ -140,7 +142,7 @@ export default function ReturnsPage() {
         <div className="relative flex-1 max-w-md group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-orange-500 transition-colors" />
           <Input
-            placeholder="Search invoice or item..."
+            placeholder={t("returns.filters.search_placeholder")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 h-10 bg-muted border-border rounded-lg text-sm"
@@ -158,7 +160,7 @@ export default function ReturnsPage() {
               className="h-8 px-3 text-[10px] font-black uppercase tracking-tighter"
               onClick={() => setStatusFilter(status)}
             >
-              {status}
+              {t(`returns.filters.${status.toLowerCase()}`)}
             </Button>
           ))}
         </div>
@@ -171,25 +173,25 @@ export default function ReturnsPage() {
             <TableHeader className="bg-muted/50">
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest px-6">
-                  Date
+                  {t("returns.table.date")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest px-6">
-                  Sale Info
+                  {t("returns.table.sale_info")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest px-6">
-                  Item Details
+                  {t("returns.table.item_details")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest px-6">
-                  Reason
+                  {t("returns.table.reason")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest px-6">
-                  Status
+                  {t("returns.table.status")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest text-right px-6">
-                  Refund
+                  {t("returns.table.refund")}
                 </TableHead>
                 <TableHead className="text-muted-foreground font-bold uppercase text-[10px] tracking-widest text-right px-6">
-                  Actions
+                  {t("returns.table.actions")}
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -198,7 +200,7 @@ export default function ReturnsPage() {
                 <TableRow className="border-border hover:bg-transparent">
                   <TableCell colSpan={7} className="h-32 text-center">
                     <p className="text-muted-foreground italic text-sm">
-                      No return requests found
+                      {t("returns.table.no_records")}
                     </p>
                   </TableCell>
                 </TableRow>
@@ -253,7 +255,7 @@ export default function ReturnsPage() {
                           ret.status === "RESTOCKED" &&
                             "bg-blue-500/10 text-blue-500 border-blue-500/20",
                           ret.status === "REJECTED" &&
-                            "bg-red-500/10 text-red-500 border-red-500/20"
+                            "bg-red-500/10 text-red-500 border-red-500/20",
                         )}
                         variant="outline"
                       >

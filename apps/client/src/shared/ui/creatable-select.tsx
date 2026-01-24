@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { Check, ChevronsUpDown, Plus, Loader2 } from "lucide-react";
 
 import { cn } from "@/shared/lib/utils";
@@ -40,28 +41,36 @@ export function CreatableSelect({
   value,
   onChange,
   onCreateNew,
-  placeholder = "Select...",
-  searchPlaceholder = "Search...",
-  emptyText = "No results found.",
-  createText = "Create",
+  placeholder,
+  searchPlaceholder,
+  emptyText,
+  createText,
   isLoading = false,
   disabled = false,
   className,
 }: CreatableSelectProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [isCreating, setIsCreating] = React.useState(false);
+
+  const innerPlaceholder =
+    placeholder ?? t("common.select_placeholder", "Select...");
+  const innerSearchPlaceholder =
+    searchPlaceholder ?? t("common.search", "Search...");
+  const innerEmptyText = emptyText ?? t("common.no_data", "No results found.");
+  const innerCreateText = createText ?? t("common.create", "Create");
 
   const selectedOption = options.find((opt) => opt.value === value);
 
   // Check if search query exactly matches an existing option
   const exactMatch = options.some(
-    (opt) => opt.label.toLowerCase() === searchQuery.toLowerCase()
+    (opt) => opt.label.toLowerCase() === searchQuery.toLowerCase(),
   );
 
   // Filter options based on search query
   const filteredOptions = options.filter((opt) =>
-    opt.label.toLowerCase().includes(searchQuery.toLowerCase())
+    opt.label.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleCreateNew = async () => {
@@ -91,18 +100,18 @@ export function CreatableSelect({
           className={cn(
             "w-full justify-between bg-muted/50 font-normal",
             !value && "text-muted-foreground",
-            className
+            className,
           )}
         >
           {isLoading ? (
             <span className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading...
+              {t("common.loading", "Loading...")}
             </span>
           ) : selectedOption ? (
             selectedOption.label
           ) : (
-            placeholder
+            innerPlaceholder
           )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -113,13 +122,13 @@ export function CreatableSelect({
       >
         <Command shouldFilter={false}>
           <CommandInput
-            placeholder={searchPlaceholder}
+            placeholder={innerSearchPlaceholder}
             value={searchQuery}
             onValueChange={setSearchQuery}
           />
           <CommandList>
             {filteredOptions.length === 0 && !searchQuery && (
-              <CommandEmpty>{emptyText}</CommandEmpty>
+              <CommandEmpty>{innerEmptyText}</CommandEmpty>
             )}
 
             {filteredOptions.length > 0 && (
@@ -137,7 +146,7 @@ export function CreatableSelect({
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        value === option.value ? "opacity-100" : "opacity-0"
+                        value === option.value ? "opacity-100" : "opacity-0",
                       )}
                     />
                     {option.label}
@@ -159,12 +168,12 @@ export function CreatableSelect({
                     {isCreating ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Creating...
+                        {t("products.form.creating", "Creating...")}
                       </>
                     ) : (
                       <>
                         <Plus className="mr-2 h-4 w-4" />
-                        {createText} "{searchQuery.trim()}"
+                        {innerCreateText} "{searchQuery.trim()}"
                       </>
                     )}
                   </CommandItem>
@@ -175,7 +184,7 @@ export function CreatableSelect({
             {/* Show empty state with create option when no matches */}
             {filteredOptions.length === 0 && searchQuery && !exactMatch && (
               <div className="py-2 text-center text-sm text-muted-foreground">
-                No matches found
+                {t("common.no_data", "No matches found")}
               </div>
             )}
           </CommandList>
