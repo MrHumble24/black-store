@@ -2,7 +2,8 @@ module.exports = {
   apps: [
     {
       name: "black-store-api",
-      script: "./apps/api/dist/main.js",
+      cwd: "./apps/api",
+      script: "./dist/main.js",
       instances: 1,
       autorestart: true,
       watch: false,
