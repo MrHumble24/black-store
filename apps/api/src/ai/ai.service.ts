@@ -2,6 +2,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 
+function isConnectionRefused(err: unknown): boolean {
+  const e = err as {
+    code?: string;
+    cause?: { code?: string; errors?: { code?: string }[] };
+  };
+  if (e?.code === 'ECONNREFUSED') return true;
+  if (e?.cause?.code === 'ECONNREFUSED') return true;
+  return !!e?.cause?.errors?.some((x) => x?.code === 'ECONNREFUSED');
+}
+
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
@@ -19,6 +29,7 @@ export class AiService {
 
   async generate(prompt: string, model?: string, providerOverride?: string) {
     const activeProvider = (providerOverride || this.provider).toLowerCase();
+    const openaiModel = model || 'gpt-4o-mini';
 
     try {
       switch (activeProvider) {
@@ -28,11 +39,29 @@ export class AiService {
           return await this.callOllama(prompt, model || this.ollamaModel);
         case 'openai':
         default:
-          return await this.callOpenAI(prompt, model || 'gpt-4o-mini');
+          return await this.callOpenAI(prompt, openaiModel);
       }
     } catch (error) {
+      const err = error as Error;
+      if (
+        activeProvider === 'ollama' &&
+        this.openaiKey &&
+        isConnectionRefused(error)
+      ) {
+        this.logger.warn(
+          'Ollama is not reachable; using OpenAI instead. Set AI_PROVIDER=openai on the server to avoid this hop.',
+        );
+        try {
+          return await this.callOpenAI(prompt, openaiModel);
+        } catch (fallbackErr) {
+          const fe = fallbackErr as Error;
+          this.logger.error(`OpenAI fallback failed: ${fe.message}`);
+          throw fallbackErr;
+        }
+      }
+
       this.logger.error(
-        `Error generating AI response via ${activeProvider}: ${error.message}`,
+        `Error generating AI response via ${activeProvider}: ${err.message}`,
       );
       throw error;
     }

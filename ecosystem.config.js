@@ -28,6 +28,8 @@ module.exports = {
       max_memory_restart: "1G",
       env: {
         NODE_ENV: "production",
+        // Ensures AI uses OpenAI on deploy even if apps/api/.env still says ollama
+        AI_PROVIDER: "openai",
       },
     },
     {
