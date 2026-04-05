@@ -5,13 +5,14 @@ const getBaseURL = () => {
   if (import.meta.env.VITE_API_BASE_URL)
     return import.meta.env.VITE_API_BASE_URL;
 
+  const apiPort = import.meta.env.VITE_API_PORT ?? "3000";
   const { hostname } = window.location;
   // If we are accessing via IP (not localhost), assume API is on the same IP
   if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-    return `http://${hostname}:3000`;
+    return `http://${hostname}:${apiPort}`;
   }
 
-  return "http://localhost:3000";
+  return `http://localhost:${apiPort}`;
 };
 
 const api = axios.create({
