@@ -8,6 +8,8 @@ export interface Tab {
   isActive: boolean;
 }
 
+const MAX_TABS = 5;
+
 interface TabsState {
   tabs: Tab[];
   activeTabId: string | null;
@@ -29,7 +31,13 @@ export const useTabsStore = create<TabsState>()(
           if (tabExists) {
             return { activeTabId: tabExists.id };
           }
-          const updatedTabs = [...state.tabs, { ...newTab, isActive: true }];
+          let updatedTabs = [
+            ...state.tabs,
+            { ...newTab, isActive: true },
+          ];
+          if (updatedTabs.length > MAX_TABS) {
+            updatedTabs = updatedTabs.slice(-MAX_TABS);
+          }
           return {
             tabs: updatedTabs,
             activeTabId: newTab.id,

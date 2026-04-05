@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { X, ChevronLeft, ChevronRight, Home } from "lucide-react";
+import { X, Home } from "lucide-react";
 import { useTabsStore } from "../model/tabs.store";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -9,6 +9,14 @@ export function TabBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { tabs, addTab, removeTab } = useTabsStore();
+
+  // One-time trim after persist rehydrate (older sessions could have >5 tabs)
+  useEffect(() => {
+    const t = useTabsStore.getState().tabs;
+    if (t.length > 5) {
+      useTabsStore.setState({ tabs: t.slice(-5) });
+    }
+  }, []);
 
   // Map paths to friendly labels
   const getTabLabel = (path: string) => {
@@ -50,74 +58,51 @@ export function TabBar() {
   if (tabs.length === 0) return null;
 
   return (
-    <div className="flex items-center h-12 bg-card/40 backdrop-blur-md border-b border-border transition-all animate-in fade-in slide-in-from-top-1 shrink-0 relative group/tabbar">
-      {/* Navigation Controls (Browser-like) */}
-      <div className="flex items-center gap-0.5 px-3 border-r border-border/50">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-primary rounded-full"
-          onClick={() => navigate(-1)}
-          title="Back"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-primary rounded-full"
-          onClick={() => navigate(1)}
-          title="Forward"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+    <div className="flex items-center h-9 bg-card/50 backdrop-blur-sm border-b border-border shrink-0">
+      <div className="flex items-center px-1.5 border-r border-border/50 shrink-0">
         <Link to="/">
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-primary rounded-full ml-1"
-            title="Home / Launchpad"
+            className="h-7 w-7 text-muted-foreground hover:text-primary"
+            title="Home"
           >
-            <Home className="h-4 w-4" />
+            <Home className="h-3.5 w-3.5" />
           </Button>
         </Link>
       </div>
 
-      {/* Tabs Container */}
-      <div className="relative flex-1 flex items-center overflow-hidden h-full px-2">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar h-full w-full">
-          <div className="flex items-center gap-1">
-            {tabs.map((tab) => {
-              const isActive = location.pathname === tab.path;
-              return (
-                <Link
-                  key={tab.id}
-                  to={tab.path}
-                  className={cn(
-                    "group relative flex items-center gap-2 px-4 h-9 rounded-xl text-[11px] font-black transition-all whitespace-nowrap min-w-[140px] max-w-[200px] border border-transparent uppercase tracking-tight",
-                    isActive
-                      ? "bg-background text-primary shadow-sm border-border/40"
-                      : "text-muted-foreground/60 hover:bg-muted/40",
-                  )}
-                >
-                  <span className="truncate flex-1 tracking-widest">
-                    {tab.label}
-                  </span>
-                  {tabs.length > 1 && (
-                    <button
-                      onClick={(e) => handleClose(e, tab.id, tab.path)}
-                      className={cn(
-                        "p-0.5 rounded-md hover:bg-red-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100",
-                        isActive && "opacity-100",
-                      )}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
+      <div className="relative flex-1 flex items-center min-w-0 h-full px-1">
+        <div className="flex items-center gap-0.5 overflow-x-auto no-scrollbar h-full max-w-full">
+          {tabs.map((tab) => {
+            const isActive = location.pathname === tab.path;
+            return (
+              <Link
+                key={tab.id}
+                to={tab.path}
+                className={cn(
+                  "group relative flex items-center gap-1 pl-2 pr-1 h-7 rounded-md text-xs font-medium transition-colors whitespace-nowrap min-w-0 max-w-36 shrink border border-transparent",
+                  isActive
+                    ? "bg-background text-foreground shadow-sm border-border/50"
+                    : "text-muted-foreground hover:bg-muted/50",
+                )}
+              >
+                <span className="truncate">{tab.label}</span>
+                {tabs.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleClose(e, tab.id, tab.path)}
+                    className={cn(
+                      "p-0.5 rounded-sm hover:bg-destructive hover:text-destructive-foreground transition-colors opacity-0 group-hover:opacity-100 shrink-0",
+                      isActive && "opacity-100",
+                    )}
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>
