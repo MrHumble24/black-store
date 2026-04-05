@@ -1,27 +1,13 @@
 import axios from "axios";
 import { useAuthStore } from "@/entities/user/model/auth.store";
 
-const getBaseURL = () => {
-  if (import.meta.env.VITE_API_BASE_URL)
-    return import.meta.env.VITE_API_BASE_URL;
-
-  const apiPort = import.meta.env.VITE_API_PORT ?? "3000";
-  const { hostname } = window.location;
-  // If we are accessing via IP (not localhost), assume API is on the same IP
-  if (hostname !== "localhost" && hostname !== "127.0.0.1") {
-    return `http://${hostname}:${apiPort}`;
-  }
-
-  return `http://localhost:${apiPort}`;
-};
-
 const api = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:3000",
   headers: { "Content-Type": "application/json" },
   timeout: 10000,
 });
 
-// Request interceptor - attach token
+// Request interceptor — attach token
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) {
@@ -30,7 +16,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Response interceptor - handle 401
+// Response interceptor — handle 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
