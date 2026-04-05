@@ -6,9 +6,9 @@ import { firstValueFrom } from 'rxjs';
 export class AiService {
   private readonly logger = new Logger(AiService.name);
 
-  // Configuration from environment
+  // Configuration from environment (openai | gemini | ollama)
   private readonly provider =
-    process.env.AI_PROVIDER?.toLowerCase() || 'ollama';
+    process.env.AI_PROVIDER?.toLowerCase() || 'openai';
   private readonly ollamaUrl =
     process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
   private readonly ollamaModel = process.env.OLLAMA_MODEL || 'qwen3-coder:30b';
@@ -24,11 +24,11 @@ export class AiService {
       switch (activeProvider) {
         case 'gemini':
           return await this.callGemini(prompt, model || 'gemini-1.5-flash');
-        case 'openai':
-          return await this.callOpenAI(prompt, model || 'gpt-4o-mini');
         case 'ollama':
-        default:
           return await this.callOllama(prompt, model || this.ollamaModel);
+        case 'openai':
+        default:
+          return await this.callOpenAI(prompt, model || 'gpt-4o-mini');
       }
     } catch (error) {
       this.logger.error(
