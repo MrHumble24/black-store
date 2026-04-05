@@ -30,7 +30,8 @@
     "no_data": "No data found",
     "analyzing_data": "Analyzing your business data...",
     "live_sync_active": "Live Sync: Active",
-    "select_placeholder": "Select..."
+    "select_placeholder": "Select...",
+    "close_all_tabs": "Close all tabs"
   },
   "launchpad": {
     "title": "BLACK STORE OS",

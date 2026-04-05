@@ -1,14 +1,16 @@
 import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { X, Home } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { X, Home, ListX } from "lucide-react";
 import { useTabsStore } from "../model/tabs.store";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
 
 export function TabBar() {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const { tabs, addTab, removeTab } = useTabsStore();
+  const { tabs, addTab, removeTab, clearTabs } = useTabsStore();
 
   // One-time trim after persist rehydrate (older sessions could have >5 tabs)
   useEffect(() => {
@@ -53,6 +55,11 @@ export function TabBar() {
         navigate(remaining[remaining.length - 1].path);
       }
     }
+  };
+
+  const handleCloseAll = () => {
+    clearTabs();
+    navigate("/");
   };
 
   if (tabs.length === 0) return null;
@@ -105,6 +112,21 @@ export function TabBar() {
           })}
         </div>
       </div>
+
+      {tabs.length > 1 && (
+        <div className="shrink-0 flex items-center border-l border-border/50 px-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+            title={t("common.close_all_tabs")}
+            onClick={handleCloseAll}
+          >
+            <ListX className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

@@ -30,7 +30,8 @@
     "no_data": "Ma'lumot yo'q",
     "analyzing_data": "Ma'lumotlar tahlil qilinmoqda...",
     "live_sync_active": "Sinxronizatsiya: Faol",
-    "select_placeholder": "Tanlang..."
+    "select_placeholder": "Tanlang...",
+    "close_all_tabs": "Barcha varaqlarni yopish"
   },
   "launchpad": {
     "title": "BLACK STORE OS",

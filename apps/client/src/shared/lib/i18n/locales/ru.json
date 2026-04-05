@@ -30,7 +30,8 @@
     "no_data": "Данные не найдены",
     "analyzing_data": "Анализ данных...",
     "live_sync_active": "Синхронизация: Активна",
-    "select_placeholder": "Выберите..."
+    "select_placeholder": "Выберите...",
+    "close_all_tabs": "Закрыть все вкладки"
   },
   "launchpad": {
     "title": "BLACK STORE OS",
