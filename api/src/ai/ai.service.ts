@@ -34,7 +34,7 @@ export class AiService {
     try {
       switch (activeProvider) {
         case 'gemini':
-          return await this.callGemini(prompt, model || 'gemini-1.5-flash');
+          return await this.callGemini(prompt, model || 'gemini-3.6-flash');
         case 'ollama':
           return await this.callOllama(prompt, model || this.ollamaModel);
         case 'openai':

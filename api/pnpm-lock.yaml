@@ -38,6 +38,15 @@ importers:
       '@prisma/client':
         specifier: ^7.2.0
         version: 7.8.0(prisma@7.8.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3))(typescript@5.9.3)
+      '@types/archiver':
+        specifier: ^7.0.0
+        version: 7.0.0
+      '@types/multer':
+        specifier: ^2.0.0
+        version: 2.2.0
+      '@types/unzipper':
+        specifier: ^0.10.11
+        version: 0.10.11
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
@@ -62,6 +71,9 @@ importers:
       pg:
         specifier: ^8.16.3
         version: 8.22.0
+      prisma:
+        specifier: ^7.2.0
+        version: 7.8.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
@@ -96,24 +108,15 @@ importers:
       '@nestjs/testing':
         specifier: ^11.0.1
         version: 11.1.27(@nestjs/common@11.1.27(class-transformer@0.5.1)(class-validator@0.14.4)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27)(@nestjs/platform-express@11.1.27)
-      '@types/archiver':
-        specifier: ^7.0.0
-        version: 7.0.0
       '@types/bcrypt':
         specifier: ^6.0.0
         version: 6.0.0
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
-      '@types/form-data':
-        specifier: ^2.5.2
-        version: 2.5.2
       '@types/jest':
         specifier: ^30.0.0
         version: 30.0.0
-      '@types/multer':
-        specifier: ^2.0.0
-        version: 2.2.0
       '@types/node':
         specifier: ^22.10.7
         version: 22.20.0
@@ -123,9 +126,6 @@ importers:
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
-      '@types/unzipper':
-        specifier: ^0.10.11
-        version: 0.10.11
       eslint:
         specifier: ^9.18.0
         version: 9.39.4(jiti@2.7.0)
@@ -144,9 +144,6 @@ importers:
       prettier:
         specifier: ^3.4.2
         version: 3.9.4
-      prisma:
-        specifier: ^7.2.0
-        version: 7.8.0(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21
@@ -1093,10 +1090,6 @@ packages:
 
   '@types/express@5.0.6':
     resolution: {integrity: sha512-sKYVuV7Sv9fbPIt/442koC7+IIwK5olP1KWeD88e/idgoJqDm3JV/YUiPwkoKK92ylff2MGxSz1CSjsXelx0YA==}
-
-  '@types/form-data@2.5.2':
-    resolution: {integrity: sha512-tfmcyHn1Pp9YHAO5r40+UuZUPAZbUEgqTel3EuEKpmF9hPkXgR4l41853raliXnb4gwyPNoQOfvgGGlHN5WSog==}
-    deprecated: This is a stub types definition. form-data provides its own type definitions, so you do not need this installed.
 
   '@types/http-errors@2.0.5':
     resolution: {integrity: sha512-r8Tayk8HJnX0FztbZN7oVqGccWgw98T/0neJphO91KkmOzug1KkofZURD4UaD5uH8AqcFLfdPErnBod0u71/qg==}
@@ -5036,10 +5029,6 @@ snapshots:
       '@types/body-parser': 1.19.6
       '@types/express-serve-static-core': 5.1.1
       '@types/serve-static': 2.2.0
-
-  '@types/form-data@2.5.2':
-    dependencies:
-      form-data: 4.0.6
 
   '@types/http-errors@2.0.5': {}
 
